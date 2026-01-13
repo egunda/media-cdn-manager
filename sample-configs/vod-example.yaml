@@ -1,0 +1,203 @@
+description: This is a Simple VOD setup for HLS and DASH
+edgeSslCertificates:
+- projects/57691354597/locations/global/certificates/my-dual-cert
+logConfig:
+  enable: true
+  sampleRate: 1.0
+name: projects/cdn-golden-demos/locations/global/edgeCacheServices/vod-example
+routing:
+  hostRules:
+  - hosts:
+    - '*'
+    pathMatcher: path-matcher-0
+  pathMatchers:
+  - name: path-matcher-0
+    routeRules:
+    - description: master manifest
+      headerAction:
+        responseHeadersToAdd:
+        - headerName: rule
+          headerValue: '1'
+        - headerName: x-cache-status
+          headerValue: '{cdn_cache_status}'
+        - headerName: x-client-city
+          headerValue: '{client_city}'
+      matchRules:
+      - ignoreCase: true
+        pathTemplateMatch: /**/manifest.m3u8
+      origin: projects/57691354597/locations/global/edgeCacheOrigins/steel-origin
+      priority: 1
+      routeAction:
+        cdnPolicy:
+          cacheKeyPolicy: {}
+          cacheMode: FORCE_CACHE_ALL
+          clientTtl: 1s
+          defaultTtl: 86400s
+          signedRequestMode: DISABLED
+        compressionMode: AUTOMATIC
+        corsPolicy:
+          allowHeaders:
+          - '*'
+          allowMethods:
+          - '*'
+          allowOrigins:
+          - '*'
+          exposeHeaders:
+          - '*'
+          maxAge: 600s
+      routeMethods:
+        allowedMethods:
+        - GET
+        - HEAD
+        - OPTIONS
+    - description: ChildPlayList
+      headerAction:
+        responseHeadersToAdd:
+        - headerName: x-cache-status
+          headerValue: '{cdn_cache_status}'
+        - headerName: x-city
+          headerValue: '{client_city}'
+        - headerName: rule
+          headerValue: '2'
+      matchRules:
+      - ignoreCase: true
+        pathTemplateMatch: /**.m3u8
+      origin: projects/57691354597/locations/global/edgeCacheOrigins/steel-origin
+      priority: 2
+      routeAction:
+        cdnPolicy:
+          cacheKeyPolicy: {}
+          cacheMode: FORCE_CACHE_ALL
+          clientTtl: 1s
+          defaultTtl: 86400s
+          signedRequestMode: DISABLED
+        compressionMode: AUTOMATIC
+        corsPolicy:
+          allowHeaders:
+          - '*'
+          allowMethods:
+          - '*'
+          allowOrigins:
+          - '*'
+          exposeHeaders:
+          - '*'
+          maxAge: 600s
+      routeMethods:
+        allowedMethods:
+        - GET
+        - HEAD
+        - OPTIONS
+    - description: tschunks
+      headerAction:
+        responseHeadersToAdd:
+        - headerName: x-cache
+          headerValue: '{cdn_cache_status}'
+        - headerName: x-city
+          headerValue: '{client_city}'
+        - headerName: rule
+          headerValue: '3'
+      matchRules:
+      - ignoreCase: true
+        pathTemplateMatch: /**.ts
+      origin: projects/57691354597/locations/global/edgeCacheOrigins/steel-origin
+      priority: 3
+      routeAction:
+        cdnPolicy:
+          cacheKeyPolicy: {}
+          cacheMode: FORCE_CACHE_ALL
+          clientTtl: 1s
+          defaultTtl: 86400s
+          signedRequestMode: DISABLED
+        compressionMode: AUTOMATIC
+        corsPolicy:
+          allowHeaders:
+          - '*'
+          allowMethods:
+          - '*'
+          allowOrigins:
+          - '*'
+          exposeHeaders:
+          - '*'
+          maxAge: 600s
+      routeMethods:
+        allowedMethods:
+        - GET
+        - HEAD
+        - OPTIONS
+    - description: DASH manifest files
+      headerAction:
+        responseHeadersToAdd:
+        - headerName: x-cache-status
+          headerValue: '{cdn_cache_status}'
+        - headerName: x-city
+          headerValue: '{client_city}'
+        - headerName: rule
+          headerValue: '47'
+      matchRules:
+      - ignoreCase: true
+        pathTemplateMatch: /**/manifest.mpd
+      origin: projects/57691354597/locations/global/edgeCacheOrigins/steel-origin
+      priority: 47
+      routeAction:
+        cdnPolicy:
+          cacheKeyPolicy: {}
+          cacheMode: FORCE_CACHE_ALL
+          clientTtl: 1s
+          defaultTtl: 86400s
+          signedRequestMode: DISABLED
+        compressionMode: AUTOMATIC
+        corsPolicy:
+          allowCredentials: true
+          allowHeaders:
+          - '*'
+          allowMethods:
+          - '*'
+          allowOrigins:
+          - '*'
+          exposeHeaders:
+          - '*'
+          maxAge: 600s
+      routeMethods:
+        allowedMethods:
+        - GET
+        - HEAD
+        - OPTIONS
+    - description: 'Dual-token: DASH media segments'
+      headerAction:
+        responseHeadersToAdd:
+        - headerName: x-cache-status
+          headerValue: '{cdn_cache_status}'
+        - headerName: x-city
+          headerValue: '{client_city}'
+        - headerName: rule
+          headerValue: '49'
+      matchRules:
+      - ignoreCase: true
+        pathTemplateMatch: /**.m4s
+      - pathTemplateMatch: /**.mp4
+      origin: projects/57691354597/locations/global/edgeCacheOrigins/steel-origin
+      priority: 49
+      routeAction:
+        cdnPolicy:
+          cacheKeyPolicy: {}
+          cacheMode: FORCE_CACHE_ALL
+          clientTtl: 1s
+          defaultTtl: 86400s
+          signedRequestMode: DISABLED
+        compressionMode: AUTOMATIC
+        corsPolicy:
+          allowCredentials: true
+          allowHeaders:
+          - '*'
+          allowMethods:
+          - '*'
+          allowOrigins:
+          - '*'
+          exposeHeaders:
+          - '*'
+          maxAge: 600s
+      routeMethods:
+        allowedMethods:
+        - GET
+        - HEAD
+        - OPTIONS

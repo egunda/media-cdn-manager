@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCP Media CDN Deployer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --viv-squid-ink: #232f3e;
+            --viv-slate: #ffffff;
+            --viv-bg: #f2f3f3;
+            --viv-orange: #ff9900;
+            --viv-orange-hover: #ec8b00;
+            --viv-border: #d5dbdb;
+            --viv-text: #16191f;
+            --viv-text-dim: #545b64;
+            --viv-blue: #0073bb;
+            --viv-card-bg: #ffffff;
+            --viv-header-bg: #fafafa;
+            --viv-input-bg: #ffffff;
+            --viv-sidebar-bg: #ffffff;
+            --viv-card-sh: 0 1px 1px 0 rgba(0, 0, 0, .1);
+            --viv-subtle: #fbfbfb;
+            --viv-accent-subtle: #f1faff;
+        }
+
+        html.dark {
+            --viv-bg: #0d1117;
+            --viv-slate: #161c22;
+            --viv-border: #30363d;
+            --viv-text: #f0f6fc;
+            --viv-text-dim: #8b949e;
+            --viv-card-bg: #0d1117;
+            --viv-header-bg: #161c22;
+            --viv-input-bg: #0d1117;
+            --viv-sidebar-bg: #0d1117;
+            --viv-card-sh: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --viv-squid-ink: #010409;
+            --viv-subtle: #161b22;
+            --viv-accent-subtle: #111b27;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: var(--viv-bg);
+            min-height: 100vh;
+            color: var(--viv-text);
+        }
+
+        .viv-header {
+            background: var(--viv-squid-ink);
+            border-bottom: 1px solid var(--viv-border);
+        }
+
+        .viv-sidebar {
+            background: var(--viv-sidebar-bg);
+            border-right: 1px solid var(--viv-border);
+        }
+
+        .viv-card {
+            background: var(--viv-card-bg);
+            border: 1px solid var(--viv-border);
+            border-radius: 2px;
+            box-shadow: var(--viv-card-sh);
+        }
+
+        .viv-card-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--viv-border);
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--viv-text);
+            background: var(--viv-header-bg);
+        }
+
+        .viv-btn-primary {
+            background: var(--viv-orange);
+            color: #ffffff;
+            font-weight: 700;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .viv-btn-primary:hover {
+            background: var(--viv-orange-hover);
+        }
+
+        .viv-btn-secondary {
+            background: var(--viv-card-bg);
+            border: 1px solid var(--viv-border);
+            color: var(--viv-text-dim);
+            font-weight: 600;
+            border-radius: 2px;
+        }
+
+        .viv-btn-secondary:hover {
+            background: var(--viv-bg);
+            border-color: var(--viv-text-dim);
+            color: var(--viv-text);
+        }
+
+        .viv-input {
+            background: var(--viv-input-bg);
+            border: 1px solid var(--viv-border);
+            color: var(--viv-text);
+            border-radius: 2px;
+        }
+
+        .viv-input:focus {
+            border-color: var(--viv-blue);
+            outline: none;
+            box-shadow: 0 0 0 1px var(--viv-blue);
+        }
+
+        .gradient-text {
+            color: var(--viv-orange);
+        }
+
+        .progress-bar-inner {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: var(--viv-bg);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--viv-border);
+            border-radius: 4px;
+        }
+
+        .nav-item {
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            color: var(--viv-text-dim);
+        }
+
+        .nav-item.active {
+            background: var(--viv-bg);
+            border-left: 3px solid var(--viv-orange);
+            color: var(--viv-text);
+            font-weight: 700;
+        }
+
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body class="flex min-h-screen font-inter overflow-x-hidden">
+    <!-- Sidebar -->
+    <aside class="w-72 viv-sidebar flex flex-col fixed h-full z-50 transition-all duration-300 transform border-r"
+        id="sidebar">
+        <div class="h-14 viv-header flex items-center px-4 gap-3">
+            <div class="w-8 h-8 bg-[#ff9900] rounded flex items-center justify-center">
+                <i data-lucide="play-circle" class="w-5 h-5 text-[var(--viv-squid-ink)]"></i>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-sm tracking-tight text-white">MediaCDN Console</span>
+                <span class="text-[10px] text-[#ff9900] font-bold border border-[#ff9900]/30 px-1 rounded">v0.1</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 space-y-1">
+            <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest px-6 mb-2 mt-4">
+                Services</p>
+
+            <button id="mediaCdnTab"
+                class="w-full flex items-center gap-3 px-6 py-2 content-center transition-all nav-item active">
+                <i data-lucide="cloud-lightning" class="w-4 h-4"></i>
+                <span class="text-sm font-semibold">Media CDN</span>
+            </button>
+            <button id="wafTab"
+                class="w-full flex items-center gap-3 px-6 py-2 content-center transition-all nav-item hover:bg-[var(--viv-bg)]">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                <span class="text-sm font-semibold">WAF Security</span>
+            </button>
+
+            <div class="pt-8 px-6">
+                <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4">Account
+                    Monitoring</p>
+                <div id="userProfile" class="viv-card p-3 flex items-center gap-3 bg-[var(--viv-subtle)]">
+                    <div class="w-8 h-8 rounded bg-[var(--viv-border)] flex items-center justify-center text-[#ff9900]"
+                        id="profileImg">
+                        <i data-lucide="key" class="w-5 h-5"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-[11px] font-bold truncate text-[var(--viv-text)]" id="profileName">API Access</p>
+                        <p class="text-[9px] text-[var(--viv-text-dim)] truncate" id="profileEmail">Service Account Mode
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 ml-72 min-h-screen relative">
+        <div
+            class="w-full h-14 viv-header border-b border-[var(--viv-border)] flex items-center justify-between px-8 sticky top-0 z-40">
+            <div class="flex items-center gap-3 text-sm text-slate-300">
+                <span class="text-[#ff9900] font-bold">Google Cloud</span>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span class="font-semibold text-white">Media CDN</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="themeToggle"
+                    class="p-2 text-slate-400 hover:text-white transition-all transform active:scale-95"
+                    title="Toggle Theme">
+                    <i data-lucide="moon" class="w-4 h-4 moon-icon"></i>
+                    <i data-lucide="sun" class="w-4 h-4 sun-icon hidden"></i>
+                </button>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <div class="flex items-center gap-2 text-[11px]">
+                    <span class="text-slate-500 font-bold uppercase tracking-wider">Project:</span>
+                    <span id="headerProjectId" class="text-blue-400 font-mono">cdn-golden-demos</span>
+                </div>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <div class="text-[11px] text-[var(--viv-text-dim)]">
+                    <span class="font-bold">Region:</span> Global
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto p-8 space-y-8" id="appContent">
+
+            <!-- Media CDN Section -->
+            <section id="mediaCdnSection">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-[var(--viv-text)] mb-1">Media CDN Management</h1>
+                    <p class="text-[var(--viv-text-dim)] text-sm">Configure, deploy and monitor your content delivery
+                        network across
+                        GCP locations.</p>
+                </div>
+
+                <!-- Project/Auth Info -->
+                <div
+                    class="bg-[var(--viv-header-bg)] border border-[var(--viv-border)] rounded p-4 flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded bg-[var(--viv-card-bg)] flex items-center justify-center border border-[var(--viv-border)]">
+                            <i data-lucide="cpu" class="w-5 h-5 text-[var(--viv-blue)]"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-[var(--viv-text-dim)] uppercase font-bold tracking-wider mb-0.5">
+                                Active Project</p>
+                            <p id="activeProjectId" class="font-mono text-sm text-[var(--viv-blue)] font-bold">
+                                cdn-golden-demos</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-[var(--viv-text-dim)] uppercase font-bold tracking-wider mb-0.5">
+                            Authorization</p>
+                        <div class="flex items-center gap-1.5 justify-end">
+                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                            <span class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">GCP App
+                                Default</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Origin Management Section -->
+                <div class="mb-8 viv-card">
+                    <div class="viv-card-header flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="database" class="w-4 h-4 text-[#ff9900]"></i>
+                            <span>Edge Cache Origins</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <select id="originList" onchange="selectOrigin(this.value)"
+                                    class="w-64 viv-input px-3 py-1.5 text-xs appearance-none pr-8">
+                                    <option value="">Select an existing origin...</option>
+                                </select>
+                                <div
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                </div>
+                            </div>
+                            <button onclick="viewResource('origin')" class="viv-btn-secondary p-1.5"
+                                title="View Config">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="loadOrigins()" class="viv-btn-secondary p-1.5" title="Refresh list">
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <div
+                            class="flex items-center justify-between p-4 bg-[var(--viv-subtle)] border border-[var(--viv-border)] rounded">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-10 h-10 rounded bg-[var(--viv-subtle)] flex items-center justify-center border border-[var(--viv-border)]">
+                                    <i data-lucide="plus-circle" class="w-5 h-5 text-[#ff9900]"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-[var(--viv-text)]">Add New Content Source</p>
+                                    <p class="text-[10px] text-[var(--viv-text-dim)] font-bold tracking-wider">GOOGLE
+                                        CLOUD STORAGE
+                                        OR EXTERNAL FQDN</p>
+                                </div>
+                            </div>
+                            <button onclick="openOriginModal()"
+                                class="viv-btn-primary px-6 py-2 text-xs flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                Create Origin
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration Unified Panel -->
+                <div class="viv-card mb-8">
+                    <div class="viv-card-header flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="settings" class="w-4 h-4 text-[#ff9900]"></i>
+                            <span>Setup Configuration</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <select id="serviceList" onchange="cloneService(this.value)"
+                                    class="w-48 viv-input px-3 py-1.5 text-xs appearance-none pr-8">
+                                    <option value="">Clone service...</option>
+                                </select>
+                                <div
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                </div>
+                            </div>
+                            <button onclick="loadServices()" class="viv-btn-secondary p-1.5">
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="configSection" class="p-8">
+                        <form id="deployForm" class="space-y-8">
+
+                            <!-- Inputs Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-bold text-[var(--viv-text-dim)]">Setup Name <span
+                                            class="text-[var(--viv-text-dim)] opacity-50 font-normal italic">-
+                                            required</span></label>
+                                    <input type="text" id="setupName" required placeholder="e.g., global-hls-service"
+                                        class="w-full viv-input px-4 py-2 text-sm focus:ring-0">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-bold text-[var(--viv-text-dim)]">Domain
+                                        Name</label>
+                                    <input type="text" id="domainName" placeholder="*"
+                                        class="w-full viv-input px-4 py-2 text-sm focus:ring-0">
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label
+                                            class="block text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider">SSL
+                                            Certificate</label>
+                                        <button type="button" onclick="loadCertificates()"
+                                            class="p-1 hover:bg-[var(--viv-border)] rounded transition-colors"
+                                            title="Refresh certificates">
+                                            <i data-lucide="rotate-cw"
+                                                class="w-2.5 h-2.5 text-[var(--viv-text-dim)]"></i>
+                                        </button>
+                                    </div>
+                                    <div class="relative">
+                                        <select id="sslCertificate"
+                                            class="w-full viv-input px-4 py-2 text-sm appearance-none pr-8 focus:ring-0">
+                                            <option value="">None (HTTP Only)</option>
+                                        </select>
+                                        <div
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-bold text-[var(--viv-text-dim)]">Origin
+                                        Selection</label>
+                                    <div class="relative">
+                                        <select id="originName" required
+                                            class="w-full viv-input px-4 py-2 text-sm appearance-none pr-8 focus:ring-0">
+                                            <option value="">Select an existing origin...</option>
+                                        </select>
+                                        <div
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-bold text-[var(--viv-text-dim)]">Content
+                                        Architecture</label>
+                                    <div
+                                        class="flex gap-2 p-1 bg-[var(--viv-subtle)] border border-[var(--viv-border)] rounded w-fit">
+                                        <button type="button" onclick="setType('VOD')" id="typeVoD"
+                                            class="px-6 py-1.5 rounded text-[11px] font-bold transition-all bg-[#ff9900] text-black">VOD
+                                            CONTENT</button>
+                                        <button type="button" onclick="setType('Live')" id="typeLive"
+                                            class="px-6 py-1.5 rounded text-[11px] font-bold transition-all text-[var(--viv-text-dim)] hover:text-[var(--viv-text)]">LIVE
+                                            STREAM</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Security Settings (Dual Token) -->
+                            <div class="space-y-4 pt-6 border-t border-[var(--viv-border)]">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="shield-check" class="w-4 h-4 text-[#ff9900]"></i>
+                                        <span
+                                            class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider">Security
+                                            Settings</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="enableDualToken" class="sr-only peer"
+                                            onchange="toggleDualToken(this.checked)">
+                                        <div
+                                            class="w-9 h-5 bg-[var(--viv-border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ff9900]">
+                                        </div>
+                                        <span class="ml-3 text-xs font-medium text-[var(--viv-text-dim)]">Enable Dual
+                                            Token
+                                            (HLS)</span>
+                                    </label>
+                                </div>
+
+                                <div id="dualTokenOptions"
+                                    class="hidden space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+
+                                    <!-- Selector Grid -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                                        <!-- Short Keyset -->
+                                        <div class="space-y-2">
+                                            <label class="block text-xs font-bold text-[var(--viv-text-dim)]">Short
+                                                Keyset
+                                                (Master Manifest)</label>
+                                            <div class="relative">
+                                                <select id="shortKeysetSelect"
+                                                    class="w-full viv-input px-3 py-2 text-sm appearance-none pr-8">
+                                                    <option value="">Select existing keyset...</option>
+                                                </select>
+                                                <div
+                                                    class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Long Keyset -->
+                                        <div class="space-y-2">
+                                            <label class="block text-xs font-bold text-[var(--viv-text-dim)]">Long
+                                                Keyset
+                                                (Media Segments)</label>
+                                            <div class="relative">
+                                                <select id="longKeysetSelect"
+                                                    class="w-full viv-input px-3 py-2 text-sm appearance-none pr-8">
+                                                    <option value="">Select existing keyset...</option>
+                                                </select>
+                                                <div
+                                                    class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Advanced Token Options -->
+                                        <div
+                                            class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-[var(--viv-accent-subtle)] rounded border border-[var(--viv-border)]">
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="block text-xs font-bold text-[var(--viv-text-dim)]">Signature
+                                                    Algorithm</label>
+                                                <div class="relative">
+                                                    <select id="shortTokenAlgorithm"
+                                                        class="w-full viv-input px-3 py-2 text-sm appearance-none pr-8">
+                                                        <option value="HMAC_SHA_256" selected>HMAC_SHA_256 (Default)
+                                                        </option>
+                                                        <option value="HMAC_SHA1">HMAC_SHA1</option>
+                                                        <option value="ED25519">ED25519</option>
+                                                    </select>
+                                                    <div
+                                                        class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--viv-text-dim)]">
+                                                        <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                                    </div>
+                                                </div>
+                                                <p class="text-[10px] text-[var(--viv-text-dim)]">Algorithm used to
+                                                    validate tokens.
+                                                </p>
+                                            </div>
+                                            <div class="flex items-center pt-6">
+                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                    <input type="checkbox" id="childUseShortToken"
+                                                        class="w-4 h-4 rounded border-[var(--viv-border)] text-[#ff9900] focus:ring-0">
+                                                    <span class="text-xs font-medium text-[var(--viv-text-dim)]">Apply
+                                                        Short token
+                                                        to
+                                                        Child manifests</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div class="pt-8 border-t border-[var(--viv-border)] flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-[var(--viv-blue)]/10 rounded">
+                                            <i data-lucide="Zap" class="w-4 h-4 text-[var(--viv-blue)]"></i>
+                                        </div>
+                                        <div>
+                                            <p
+                                                class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase tracking-tight">
+                                                Fast
+                                                Deployment</p>
+                                            <p
+                                                class="text-[9px] text-[var(--viv-text-dim)] uppercase font-bold tracking-widest opacity-60">
+                                                Typically finishes in <span
+                                                    class="text-[var(--viv-text-dim)]">~5m</span></p>
+                                        </div>
+                                    </div>
+                                    <button type="submit" id="deployBtn"
+                                        class="viv-btn-primary px-10 py-3 text-sm flex items-center gap-2">
+                                        <span>Deploy Service</span>
+                                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                        </form>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- WAF Security Section -->
+            <section id="wafSection" class="hidden space-y-8">
+                <div class="mb-8">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="status-badge bg-blue-100 text-[var(--viv-blue)] border border-blue-200">AI
+                            Enabled</span>
+                        <span class="text-sm font-bold text-[var(--viv-text)]">Cloud Armor WAF Policy Agent</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-[var(--viv-text)] mb-1">VIV WAF Console (Gemini Managed)</h1>
+                    <p class="text-[var(--viv-text-dim)] text-sm italic">"Review security recommendations generated by
+                        Gemini Flash
+                        1.5 for your Media CDN endpoints."</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Chat & Command Center -->
+                    <div class="lg:col-span-2 space-y-8">
+                        <div class="viv-card">
+                            <div class="viv-card-header flex items-center gap-2">
+                                <i data-lucide="message-square" class="w-4 h-4 text-[#ff9900]"></i>
+                                <span>Security Agent Request</span>
+                            </div>
+
+                            <div class="p-8 space-y-6">
+                                <div class="relative">
+                                    <textarea id="wafPrompt" rows="4"
+                                        placeholder="E.g., Block IP address 123.45.67.89 for the next 24 hours, or create a rule to rate limit the /api endpoint..."
+                                        class="w-full viv-input px-5 py-4 focus:ring-1 focus:ring-[#ff9900]/50 transition-all placeholder:text-[var(--viv-text-dim)] opacity-70 resize-none text-base"></textarea>
+                                    <div class="mt-4 flex justify-end">
+                                        <button id="analyzeWafBtn"
+                                            class="viv-btn-primary px-8 py-2.5 flex items-center gap-2">
+                                            <span>Analyze</span>
+                                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- AI Insight Result -->
+                                <div id="wafAiResult"
+                                    class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div
+                                        class="bg-[var(--viv-header-bg)] border border-[var(--viv-border)] rounded p-6 mt-6">
+                                        <div class="flex items-start gap-4">
+                                            <div
+                                                class="w-8 h-8 rounded bg-[var(--viv-card-bg)] flex items-center justify-center flex-shrink-0 mt-1 border border-[var(--viv-border)]">
+                                                <i data-lucide="eye" class="w-4 h-4 text-[#ff9900]"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p id="wafExplanation"
+                                                    class="text-[var(--viv-text)] leading-relaxed mb-4 italic text-sm">
+                                                    Thinking...</p>
+
+                                                <div id="wafCommandBox"
+                                                    class="bg-[#16191f] rounded p-4 font-mono text-xs text-[#ff9900] border border-[#232f3e] mb-4 overflow-x-auto custom-scrollbar">
+                                                    <pre id="wafCommandText"># Commands will appear here</pre>
+                                                </div>
+
+                                                <div class="flex gap-3">
+                                                    <button id="applyWafBtn"
+                                                        class="viv-btn-primary px-6 py-2 text-xs">Implement
+                                                        Changes</button>
+                                                    <button id="discardWafBtn"
+                                                        class="viv-btn-secondary px-6 py-2 text-xs">Discard</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Actions (Summary) -->
+                        <div id="wafSummaryList" class="viv-card">
+                            <div class="viv-card-header flex items-center gap-2">
+                                <i data-lucide="history" class="w-4 h-4 text-[var(--viv-text-dim)]"></i>
+                                <span>Recent Policy Actions</span>
+                            </div>
+                            <div class="p-6 space-y-4" id="wafHistory">
+                                <div
+                                    class="flex items-center justify-center p-12 text-[var(--viv-text-dim)] border border-dashed border-[var(--viv-border)] rounded">
+                                    <p class="text-xs font-bold uppercase tracking-widest">No actions taken yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WAF Stats/Context -->
+                    <div class="space-y-8">
+                        <div class="viv-card">
+                            <div class="viv-card-header">Target Policy</div>
+                            <div class="p-6">
+                                <div
+                                    class="bg-[var(--viv-header-bg)] rounded p-4 border border-[var(--viv-border)] mb-6">
+                                    <div class="flex justify-between items-center mb-1 text-[10px]">
+                                        <span class="text-[var(--viv-text-dim)] uppercase font-bold">Policy Name</span>
+                                        <span class="text-[#ff9900]">Global</span>
+                                    </div>
+                                    <p class="font-bold text-sm">altostrat-waf-policy</p>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-[var(--viv-text-dim)] font-bold uppercase">Total Rules</span>
+                                        <span class="text-[var(--viv-text)]">14</span>
+                                    </div>
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-[var(--viv-text-dim)] font-bold uppercase">Default Rule</span>
+                                        <span class="text-blue-600 font-bold">ALLOW</span>
+                                    </div>
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-[var(--viv-text-dim)] font-bold uppercase">Threat Intel</span>
+                                        <span class="text-[var(--viv-text-dim)] opacity-60">Standard</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Status Simulator -->
+                        <div class="viv-card bg-gradient-to-br from-[#ff9900]/10 to-transparent">
+                            <div class="viv-card-header flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-[#ff9900]"></i>
+                                <span>Live Traffic Status</span>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                    <span class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Policy sync
+                                        complete</span>
+                                </div>
+                                <div class="h-16 w-full flex items-end gap-1 px-1">
+                                    <div class="flex-1 bg-[#ff9900]/40 h-[40%]"
+                                        style="animation: bounce 1s infinite 0.1s"></div>
+                                    <div class="flex-1 bg-[#ff9900]/40 h-[60%]"
+                                        style="animation: bounce 1s infinite 0.3s"></div>
+                                    <div class="flex-1 bg-[#ff9900]/60 h-[90%]"
+                                        style="animation: bounce 1s infinite 0.5s"></div>
+                                    <div class="flex-1 bg-[#ff9900]/40 h-[50%]"
+                                        style="animation: bounce 1s infinite 0.2s"></div>
+                                    <div class="flex-1 bg-[#ff9900]/50 h-[70%]"
+                                        style="animation: bounce 1s infinite 0.4s"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Resource Cleanup Section -->
+            <div class="mt-8 viv-card">
+                <div class="viv-card-header flex items-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4 text-red-500/80"></i>
+                    <span>Configuration Cleanup Area</span>
+                    <span class="ml-2 text-[10px] text-red-500 font-bold border border-red-500/20 px-1 rounded">Danger
+                        Zone</span>
+                </div>
+
+                <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Services Cleanup -->
+                    <div class="bg-[var(--viv-header-bg)] rounded p-6 border border-[var(--viv-border)]">
+                        <h3
+                            class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4 flex justify-between items-center">
+                            Deployed Services
+                            <button onclick="populateCleanupList('service')"
+                                class="text-[#0073bb] hover:underline">Refresh</button>
+                        </h3>
+                        <div id="serviceCleanupList" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                            <div class="text-center text-slate-400 text-xs py-4 italic">Scanning for services...</div>
+                        </div>
+                    </div>
+
+                    <!-- Origins Cleanup -->
+                    <div class="bg-[var(--viv-header-bg)] rounded p-6 border border-[var(--viv-border)]">
+                        <h3
+                            class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4 flex justify-between items-center">
+                            Defined Origins
+                            <button onclick="populateCleanupList('origin')"
+                                class="text-[#0073bb] hover:underline">Refresh</button>
+                        </h3>
+                        <div id="originCleanupList" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                            <div class="text-center text-slate-400 text-xs py-4 italic">Scanning for origins...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: scaleY(1);
+            }
+
+            50% {
+                transform: scaleY(1.3);
+            }
+        }
+    </style>
+
+
+    <!-- Notification -->
+    <div id="notification"
+        class="fixed bottom-8 right-8 pointer-events-none opacity-0 translate-y-4 transition-all duration-300 z-[100]">
+        <div class="bg-[#232f3e] border border-[#ff9900]/50 px-6 py-4 rounded-sm flex items-center gap-3 shadow-2xl">
+            <i data-lucide="check-circle" class="text-emerald-500 w-5 h-5"></i>
+            <span id="notificationText" class="font-bold text-sm text-[#eaeded]">Update Successful</span>
+        </div>
+    </div>
+
+    <!-- JSON Viewer Modal -->
+    <div id="jsonModal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="viv-card w-full max-w-4xl max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+            <div class="viv-card-header flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="code" class="w-4 h-4 text-[#ff9900]"></i>
+                    <span id="modalTitle">Resource JSON</span>
+                </div>
+                <button onclick="closeModal()"
+                    class="p-1 hover:bg-[var(--viv-border)] rounded transition-colors text-[var(--viv-text-dim)]">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto bg-[#0f141a] flex-1 font-mono text-[11px] custom-scrollbar">
+                <pre id="jsonContent" class="text-[#3bcad3] whitespace-pre-wrap"></pre>
+            </div>
+            <div class="p-4 border-t border-[#414750] bg-[#16191f] flex justify-end gap-3">
+                <button onclick="copyModalContent()" class="viv-btn-secondary px-6 py-2 text-xs">Copy JSON</button>
+                <button onclick="closeModal()" class="viv-btn-primary px-6 py-2 text-xs">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global UI Components -->
+    <div id="progressWindow"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+        <div class="w-full max-w-2xl viv-card shadow-2xl animate-in zoom-in-95 duration-300">
+            <div class="viv-card-header flex justify-between items-center cursor-default">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-[#ff9900]"></i>
+                    <span>Cloud Deployment Monitor</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button onclick="minimizeProgress()"
+                        class="p-1 hover:bg-[var(--viv-border)] rounded transition-colors" title="Minimize to Tray">
+                        <i data-lucide="minus" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="closeProgress()"
+                        class="p-1 hover:bg-[var(--viv-border)] rounded transition-colors text-red-500" title="Close">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 flex flex-col min-h-[300px]">
+                <div id="statusPlaceholder"
+                    class="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                    <div
+                        class="w-12 h-12 rounded bg-[var(--viv-subtle)] border border-[var(--viv-border)] flex items-center justify-center mb-4 text-[var(--viv-text-dim)]">
+                        <i data-lucide="terminal" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Awaiting
+                        Sequence...</p>
+                </div>
+
+                <div id="statusPanel" class="hidden flex-1 flex flex-col">
+                    <div class="mb-6">
+                        <div class="flex justify-between text-[11px] font-bold mb-2">
+                            <span id="statusLabel"
+                                class="text-[var(--viv-text)] truncate max-w-[200px]">Initializing...</span>
+                            <span id="progressPercent" class="text-[#ff9900]">0%</span>
+                        </div>
+                        <div
+                            class="w-full bg-[var(--viv-subtle)] rounded h-2 overflow-hidden border border-[var(--viv-border)]">
+                            <div id="progressBar" class="progress-bar-inner h-full bg-[#ff9900] w-0">
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Media CDN
+                                Monitor</span>
+                            <span id="timeLeft" class="text-[10px] text-slate-500 font-bold">Est:
+                                calculating...</span>
+                        </div>
+                    </div>
+
+                    <div id="logContainer"
+                        class="flex-1 bg-[#16191f] border border-[#232f3e] rounded-sm p-4 font-mono text-[11px] overflow-y-auto min-h-[250px] max-h-[400px] space-y-1 mb-6 custom-scrollbar text-slate-300">
+                        <!-- Logs -->
+                    </div>
+
+                    <div id="completionActions"
+                        class="hidden mt-auto pt-4 border-t border-[var(--viv-border)] flex items-center gap-4">
+                        <button onclick="downloadYAML()"
+                            class="viv-btn-primary flex-1 py-2.5 text-xs flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Config
+                        </button>
+                        <button onclick="window.location.reload()" class="viv-btn-secondary flex-1 py-2.5 text-xs">
+                            Deploy New Service
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persistent Bottom Progress Bar (Minimized View) -->
+    <div id="minimizedProgressBar"
+        class="hidden fixed bottom-8 right-8 bg-[#16191f]/95 backdrop-blur-md border border-white/10 rounded-lg px-6 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[100] flex items-center gap-6 animate-in slide-in-from-right-10 duration-500 max-w-sm w-full">
+        <div class="flex items-center gap-3 shrink-0">
+            <div class="w-2.5 h-2.5 rounded-full bg-[#ff9900] animate-pulse shadow-[0_0_12px_#ff9900]"></div>
+            <span class="text-[11px] font-bold text-white uppercase tracking-widest">Deploying</span>
+        </div>
+
+        <div class="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden">
+            <div id="miniProgressBarInner" class="h-full bg-[#ff9900] w-0 transition-all duration-1000">
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 shrink-0 border-l border-white/10 pl-4">
+            <span id="miniProgressPercent" class="text-[11px] font-bold text-white/90 font-mono w-8">0%</span>
+            <button onclick="expandProgress()"
+                class="bg-[#ff9900] hover:bg-[#ec8900] text-[#16191f] px-3 py-1.5 rounded font-bold text-[10px] uppercase transition-all shadow-lg active:scale-95">
+                Monitor
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let loadedConfig = null;
+        let currentRowData = null; // Store original JSON for high-fidelity cloning
+        let currentType = 'VOD';
+        let isDeploying = false;
+        let userClosedProgress = false;
+
+        // Modal Logic
+        function closeModal() {
+            document.getElementById('jsonModal').classList.add('hidden');
+        }
+
+        function copyModalContent() {
+            const content = document.getElementById('jsonContent').innerText;
+            navigator.clipboard.writeText(content);
+            showNotification('JSON copied to clipboard');
+        }
+
+        // Resource Cleanup Logic
+        async function populateCleanupList(type) {
+            const container = document.getElementById(`${type}CleanupList`);
+            if (!container) return;
+            container.innerHTML = '<div class="flex justify-center py-4"><i data-lucide="loader-2" class="w-4 h-4 animate-spin text-slate-500"></i></div>';
+            lucide.createIcons();
+
+            try {
+                let url = '';
+                if (type === 'origin') url = '/api/origins';
+                else if (type === 'service') url = '/api/services';
+
+                if (!url) return;
+
+                const resp = await fetch(url);
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    throw new Error(data.error || `HTTP ${resp.status}`);
+                }
+
+                let list = [];
+                if (type === 'origin') list = data.edgeCacheOrigins || [];
+                else if (type === 'service') list = data.edgeCacheServices || [];
+
+                container.innerHTML = '';
+
+                if (!list || list.length === 0) {
+                    container.innerHTML = `<div class="text-center text-[var(--viv-text-dim)] text-[10px] py-4 uppercase font-bold tracking-widest">No ${type}s found</div>`;
+                    return;
+                }
+
+                list.forEach(item => {
+                    const name = item.name.split('/').pop();
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-3 rounded bg-[var(--viv-subtle)] border border-[var(--viv-border)] hover:bg-[var(--viv-bg)] group transition-all';
+
+                    let dotColor = 'bg-[#ff9900]';
+                    if (type === 'service') dotColor = 'bg-[#0073bb]';
+
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-1.5 h-1.5 rounded-full ${dotColor}"></div>
+                            <span class="text-xs text-[var(--viv-text)] truncate font-mono">${name}</span>
+                        </div>
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="viewResource('${type}', '${name}')" class="p-1 px-2 viv-btn-secondary text-[10px] py-1">
+                                View
+                            </button>
+                            <button onclick="confirmDelete('${type}', '${name}')" class="p-1 px-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded text-[10px] py-1 hover:bg-red-600 hover:text-white transition-all">
+                                Delete
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Error populating list:', err);
+                container.innerHTML = `<div class="text-center text-red-400 text-[10px] py-4 uppercase font-bold tracking-widest">Error: ${err.message || 'Check Console'}</div>`;
+            }
+        }
+
+        async function viewResource(type, explicitId = null) {
+            let id = explicitId;
+            if (!id) {
+                if (type === 'origin') id = document.getElementById('originList').value;
+                else id = document.getElementById('serviceList').value;
+            }
+
+            if (!id) return showNotification(`Please select a ${type} first`, true);
+
+            const url = type === 'origin' ? `/api/origin/${id}` : `/api/service/${id}`;
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                document.getElementById('jsonContent').innerText = JSON.stringify(data, null, 2);
+                document.getElementById('modalTitle').innerText = `${type.toUpperCase()}: ${id}`;
+                document.getElementById('jsonModal').classList.remove('hidden');
+            } catch (err) {
+                showNotification(`Failed to load ${type} details`, true);
+            }
+        }
+
+        async function confirmDelete(type, id) {
+            if (!confirm(`DANGER: Are you sure you want to PERMANENTLY DELETE current active configuration for "${id}"?\n\nThis will take a few minutes to propagate and cannot be undone.`)) return;
+
+            showNotification(`Initiating deletion for ${id}...`);
+            const url = type === 'origin' ? `/api/origin/${id}` : `/api/service/${id}`;
+
+            try {
+                const resp = await fetch(url, { method: 'DELETE' });
+                const data = await resp.json();
+
+                if (data.name || data.status === 'SUCCESS' || data.done === false) {
+                    showNotification(`Deletion task submitted successfully.`);
+                    // Optimistic UI update
+                    const container = document.getElementById(`${type}CleanupList`);
+                    const items = Array.from(container.children);
+                    const item = items.find(el => el.innerText.includes(id));
+                    if (item) {
+                        item.classList.add('opacity-50', 'pointer-events-none');
+                        item.querySelector('span').innerText += ' (Deleting...)';
+                    }
+                } else if (data.error) {
+                    const errorMsg = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
+                    throw new Error(errorMsg);
+                } else {
+                    console.log('Delete resp:', data);
+                    showNotification(`Deletion request sent for ${id}`);
+                }
+            } catch (err) {
+                console.error('Delete failed:', err);
+                showNotification(`Deletion failed: ${err.message}`, true);
+                if (err.message.includes('400') || err.message.includes('INVALID_ARGUMENT')) {
+                    showNotification('Check if resource is still in use by other configs', true);
+                }
+            }
+        }
+
+        // Initialize lists on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Existing init code runs...
+            setTimeout(() => {
+                populateCleanupList('service');
+                populateCleanupList('origin');
+            }, 1000);
+        });
+
+        // Tab Management
+        const mediaCdnTab = document.getElementById('mediaCdnTab');
+        const wafTab = document.getElementById('wafTab');
+        const mediaCdnSection = document.getElementById('mediaCdnSection');
+        const wafSection = document.getElementById('wafSection');
+
+        function switchTab(tab) {
+            if (tab === 'waf') {
+                mediaCdnSection.classList.add('hidden');
+                wafSection.classList.remove('hidden');
+                mediaCdnTab.classList.remove('active');
+                wafTab.classList.add('active');
+            } else {
+                wafSection.classList.add('hidden');
+                mediaCdnSection.classList.remove('hidden');
+                wafTab.classList.remove('active');
+                mediaCdnTab.classList.add('active');
+            }
+            lucide.createIcons();
+        }
+
+        mediaCdnTab.addEventListener('click', () => switchTab('media'));
+        wafTab.addEventListener('click', () => switchTab('waf'));
+
+        function setType(type) {
+            currentType = type;
+            const vodBtn = document.getElementById('typeVoD');
+            const liveBtn = document.getElementById('typeLive');
+
+            if (type === 'VOD') {
+                vodBtn.className = 'px-6 py-1.5 rounded text-[11px] font-bold transition-all bg-[#ff9900] text-black shadow-sm';
+                liveBtn.className = 'px-6 py-1.5 rounded text-[11px] font-bold transition-all text-[var(--viv-text-dim)] hover:text-[var(--viv-text)]';
+            } else {
+                liveBtn.className = 'px-6 py-1.5 rounded text-[11px] font-bold transition-all bg-[#ff9900] text-black shadow-sm';
+                vodBtn.className = 'px-6 py-1.5 rounded text-[11px] font-bold transition-all text-[var(--viv-text-dim)] hover:text-[var(--viv-text)]';
+            }
+        }
+
+        // Dual Token Logic
+        function toggleDualToken(enabled) {
+            const options = document.getElementById('dualTokenOptions');
+            if (enabled) {
+                options.classList.remove('hidden');
+                loadKeysets();
+            } else {
+                options.classList.add('hidden');
+            }
+        }
+
+        // Resource management simplified - only select existing
+
+
+        async function loadKeysets() {
+            try {
+                const resp = await fetch('/api/keysets');
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    console.error('Keyset loading failed:', data.error);
+                    return;
+                }
+
+                const shortSelect = document.getElementById('shortKeysetSelect');
+                const longSelect = document.getElementById('longKeysetSelect');
+
+                const currentShort = shortSelect ? shortSelect.value : '';
+                const currentLong = longSelect ? longSelect.value : '';
+
+                if (shortSelect) shortSelect.innerHTML = '<option value="">Select existing keyset...</option>';
+                if (longSelect) longSelect.innerHTML = '<option value="">Select existing keyset...</option>';
+
+                // Handle both v1alpha1 and v1 response keys
+                const list = data.edgeCacheKeysets || data.keysets || [];
+                list.forEach(ks => {
+                    const name = ks.name.split('/').pop();
+                    const opt = `<option value="${name}">${name}</option>`;
+                    if (shortSelect) shortSelect.innerHTML += opt;
+                    if (longSelect) longSelect.innerHTML += opt;
+                });
+
+                if (shortSelect) shortSelect.value = currentShort;
+                if (longSelect) longSelect.value = currentLong;
+            } catch (err) {
+                console.error('Failed to load keysets:', err);
+            }
+        }
+
+
+        async function loadCertificates() {
+            try {
+                const resp = await fetch('/api/certificates');
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    console.error('Certificate loading failed:', data.error);
+                    return;
+                }
+
+                const select = document.getElementById('sslCertificate');
+                if (!select) return;
+
+                const current = select.value;
+                select.innerHTML = '<option value="">None (HTTP Only)</option>';
+
+                const list = data.certificates || [];
+                // Only show certificates with EDGE_CACHE scope as per Media CDN requirements
+                const filtered = list.filter(c => c.scope === 'EDGE_CACHE' || !c.scope);
+
+                filtered.forEach(cert => {
+                    const name = cert.name.split('/').pop();
+                    const option = document.createElement('option');
+                    option.value = cert.name;
+                    option.innerText = name;
+                    select.appendChild(option);
+                });
+
+                select.value = current;
+                lucide.createIcons();
+                if (filtered.length > 0) {
+                    console.log(`Loaded ${filtered.length} SSL certificates`);
+                }
+            } catch (err) {
+                console.error('Failed to load certificates:', err);
+                showNotification(`SSL Certs: ${err.message}`, true);
+            }
+        }
+
+        // Auto-load config on startup
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const resp = await fetch('/api/config');
+                if (!resp.ok) throw new Error('Failed to load credentials/key.json');
+                loadedConfig = await resp.json();
+                document.getElementById('activeProjectId').innerText = loadedConfig.project_id;
+                document.getElementById('headerProjectId').innerText = loadedConfig.project_id;
+                showNotification('Project configuration loaded');
+
+                // Load initial resources
+                loadOrigins();
+                loadServices();
+                loadKeysets();
+                loadCertificates();
+
+                // Populate discovery lists
+                populateCleanupList('service');
+                populateCleanupList('origin');
+            } catch (err) {
+                const activeProj = document.getElementById('activeProjectId');
+                if (activeProj) {
+                    activeProj.innerText = 'Error: key.json not found';
+                    activeProj.classList.replace('text-blue-400', 'text-red-400');
+                }
+                showNotification(err.message, true);
+            }
+        });
+
+        // --- Origin Management ---
+        let deployingOrigins = new Set();
+
+        async function loadOrigins() {
+            try {
+                const resp = await fetch('/api/origins');
+                const data = await resp.json();
+
+                const list = document.getElementById('originList');
+                const configList = document.getElementById('originName');
+
+                if (list) list.innerHTML = '<option value="">Select an existing origin...</option>';
+                if (configList) configList.innerHTML = '<option value="">Select an existing origin...</option>';
+
+                if (data.edgeCacheOrigins) {
+                    data.edgeCacheOrigins.forEach(origin => {
+                        const name = origin.name.split('/').pop();
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.innerText = name;
+
+                        if (list) list.appendChild(option.cloneNode(true));
+                        if (configList) configList.appendChild(option);
+                    });
+                }
+
+                // Add origins currently being deployed
+                deployingOrigins.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.innerText = `${name} (Deploying...)`;
+                    option.disabled = true;
+                    option.className = 'text-slate-500';
+
+                    if (list) list.appendChild(option.cloneNode(true));
+                    if (configList) configList.appendChild(option);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Error loading origins:', err);
+            }
+        }
+
+        function selectOrigin(name) {
+            if (!name) return;
+            document.getElementById('originName').value = name;
+        }
+
+
+        async function pollOriginStatus(jobId, originName) {
+            const doPoll = async () => {
+                try {
+                    const resp = await fetch(`/api/status/${jobId}`);
+                    const data = await resp.json();
+
+                    updateUI(data);
+
+                    if (data.status === 'Success' || data.status === 'Failed') {
+                        clearInterval(interval);
+                        deployingOrigins.delete(originName);
+                        loadOrigins();
+                        if (data.status === 'Success') {
+                            showNotification(`Origin ${originName} deployed!`);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Polling error:', err);
+                }
+            };
+
+            doPoll();
+            const interval = setInterval(doPoll, 10000);
+        }
+
+        // --- Service Management & Cloning ---
+        async function loadServices() {
+            try {
+                const resp = await fetch('/api/services');
+                const data = await resp.json();
+                const list = document.getElementById('serviceList');
+                list.innerHTML = '<option value="">Clone existing service...</option>';
+
+                if (data.edgeCacheServices) {
+                    data.edgeCacheServices.forEach(svc => {
+                        const name = svc.name.split('/').pop();
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.innerText = name;
+                        list.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading services:', err);
+            }
+        }
+
+        async function cloneService(serviceName) {
+            if (!serviceName) return;
+            try {
+                const resp = await fetch(`/api/service/${serviceName}`);
+                const data = await resp.json();
+                currentRowData = JSON.parse(JSON.stringify(data)); // Deep copy
+
+                // Populate form
+                document.getElementById('setupName').value = `${serviceName}-clone`;
+
+                // 1. Domain / HostRules
+                if (data.routing && data.routing.hostRules && data.routing.hostRules[0]) {
+                    document.getElementById('domainName').value = data.routing.hostRules[0].hosts[0];
+                }
+
+                // 2. SSL Certificate - Handle missing options
+                if (data.edgeSslCertificates && data.edgeSslCertificates[0]) {
+                    const certPath = data.edgeSslCertificates[0];
+                    const select = document.getElementById('sslCertificate');
+                    let exists = Array.from(select.options).some(o => o.value === certPath);
+                    if (!exists) {
+                        const opt = document.createElement('option');
+                        opt.value = certPath;
+                        opt.text = certPath.split('/').pop() + ' (Cloned)';
+                        select.appendChild(opt);
+                    }
+                    select.value = certPath;
+                } else {
+                    document.getElementById('sslCertificate').value = '';
+                }
+
+                // 3. Extract origin and detect type from first route
+                if (data.routing && data.routing.pathMatchers && data.routing.pathMatchers[0].routeRules) {
+                    const rules = data.routing.pathMatchers[0].routeRules;
+                    const firstRule = rules[0];
+
+                    if (firstRule) {
+                        const originPath = firstRule.origin;
+                        if (originPath) {
+                            const originId = originPath.split('/').pop();
+                            const originSelect = document.getElementById('originName');
+                            let oExists = Array.from(originSelect.options).some(o => o.value === originId);
+                            if (!oExists) {
+                                const opt = document.createElement('option');
+                                opt.value = originId;
+                                opt.text = originId + ' (Cloned)';
+                                originSelect.appendChild(opt);
+                            }
+                            originSelect.value = originId;
+                        }
+
+                        // Heuristic to detect Type (VOD vs Live)
+                        if (firstRule.routeAction && firstRule.routeAction.cdnPolicy) {
+                            const ttl = firstRule.routeAction.cdnPolicy.defaultTtl;
+                            if (ttl && (ttl.includes('31536000') || parseInt(ttl) > 86400)) {
+                                setType('VOD');
+                            } else {
+                                setType('Live');
+                            }
+                        }
+                    }
+
+                    // 4. Dual Token detection
+                    // Look for a rule with REQUIRE_TOKENS
+                    const securedRule = rules.find(r => r.routeAction?.cdnPolicy?.signedRequestMode === 'REQUIRE_TOKENS');
+                    if (securedRule) {
+                        document.getElementById('enableDualToken').checked = true;
+                        toggleDualToken(true);
+
+                        const policy = securedRule.routeAction.cdnPolicy;
+
+                        // Heuristic: If it has addSignatures, it's likely a Master manifest rule (Short Keyset)
+                        // If it doesn't, it might be Child or Segment.
+                        if (policy.addSignatures && policy.addSignatures.keyset) {
+                            document.getElementById('shortKeysetSelect').value = policy.signedRequestKeyset.split('/').pop();
+                            document.getElementById('longKeysetSelect').value = policy.addSignatures.keyset.split('/').pop();
+                        } else {
+                            // Try to find Master rule specifically for short keyset
+                            const masterRule = rules.find(r => r.routeAction?.cdnPolicy?.addSignatures?.actions?.includes('GENERATE_TOKEN_HLS_COOKIELESS'));
+                            if (masterRule) {
+                                document.getElementById('shortKeysetSelect').value = masterRule.routeAction.cdnPolicy.signedRequestKeyset.split('/').pop();
+                                document.getElementById('longKeysetSelect').value = masterRule.routeAction.cdnPolicy.addSignatures.keyset.split('/').pop();
+                            }
+                        }
+
+                        if (policy.signedTokenOptions && policy.signedTokenOptions.allowedSignatureAlgorithms) {
+                            document.getElementById('shortTokenAlgorithm').value = policy.signedTokenOptions.allowedSignatureAlgorithms[0];
+                        }
+                    } else {
+                        document.getElementById('enableDualToken').checked = false;
+                        toggleDualToken(false);
+                    }
+                }
+
+                showNotification(`Settings cloned from ${serviceName}`);
+            } catch (err) {
+                console.error('Clone error:', err);
+                showNotification('Error cloning service', true);
+            }
+        }
+
+
+        document.getElementById('deployForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isDeploying) {
+                showNotification('Deployment already in progress', true);
+                document.getElementById('progressWindow').classList.remove('hidden');
+                return;
+            }
+
+            const setupName = document.getElementById('setupName').value;
+            const domain = document.getElementById('domainName').value || '*';
+            const originName = document.getElementById('originName').value;
+
+            if (!setupName || !originName) {
+                alert('Setup Name and Origin Name are required');
+                return;
+            }
+
+            const dualTokenEnabled = document.getElementById('enableDualToken').checked;
+            const dualTokenConfig = {
+                enabled: dualTokenEnabled,
+                signature_algorithm: document.getElementById('shortTokenAlgorithm').value,
+                child_use_short_token: document.getElementById('childUseShortToken').checked
+            };
+
+            if (dualTokenEnabled) {
+                const sk = document.getElementById('shortKeysetSelect').value;
+                const lk = document.getElementById('longKeysetSelect').value;
+
+                if (!sk || !lk) {
+                    alert('Both Short and Long Keysets are required when Dual Token is enabled');
+                    return;
+                }
+
+                dualTokenConfig.short_keyset = sk;
+                dualTokenConfig.long_keyset = lk;
+            }
+
+            const payload = {
+                setup_name: setupName,
+                domain: domain,
+                origin_name: originName,
+                setup_type: currentType,
+                ssl_certificate: document.getElementById('sslCertificate').value,
+                key_data: loadedConfig,
+                project_id: loadedConfig.project_id,
+                dual_token_config: dualTokenConfig,
+                original_json: currentRowData
+            };
+
+            startRealDeployment(payload);
+        });
+
+        async function startRealDeployment(payload) {
+            isDeploying = true;
+            userClosedProgress = false;
+            document.getElementById('deployBtn').disabled = true;
+            document.getElementById('progressWindow').classList.remove('hidden');
+            document.getElementById('statusPlaceholder').classList.add('hidden');
+            document.getElementById('statusPanel').classList.remove('hidden');
+            document.getElementById('completionActions').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressPercent').innerText = '0%';
+            document.getElementById('statusLabel').innerText = 'Starting...';
+            document.getElementById('statusLabel').classList.remove('text-red-400');
+
+            try {
+                const response = await fetch('/api/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Deployment initiation failed');
+
+                const data = await response.json();
+                pollStatus(data.job_id);
+            } catch (err) {
+                isDeploying = false;
+                document.getElementById('deployBtn').disabled = false;
+                showNotification(err.message, true);
+                document.getElementById('statusLabel').innerText = 'Error: ' + err.message;
+                document.getElementById('statusLabel').classList.add('text-red-400');
+            }
+        }
+
+        async function pollStatus(jobId, onSuccess = null) {
+            const doPoll = async () => {
+                try {
+                    const response = await fetch(`/api/status/${jobId}`);
+                    const data = await response.json();
+
+                    updateUI(data);
+
+                    if (data.status === 'Success' || data.status === 'Failed') {
+                        clearInterval(interval);
+                        isDeploying = false;
+                        document.getElementById('deployBtn').disabled = false;
+                        if (data.status === 'Success') {
+                            document.getElementById('statusLabel').classList.remove('text-red-400');
+                            if (!onSuccess) {
+                                document.getElementById('completionActions').classList.remove('hidden');
+                            }
+                            showNotification(onSuccess ? 'Operation Success!' : 'Media CDN Deployed!');
+                            if (onSuccess) onSuccess();
+                        } else {
+                            showNotification('Operation Failed!', true);
+                            document.getElementById('statusLabel').classList.add('text-red-400');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Polling error:', err);
+                }
+            };
+
+            doPoll(); // Immediate poll
+            const interval = setInterval(doPoll, 10000); // Polling every 10s
+        }
+
+        function updateUI(data) {
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+            data.logs.forEach(log => {
+                const div = document.createElement('div');
+                div.className = 'text-[var(--viv-text-dim)] border-l-2 border-[var(--viv-border)] pl-3 py-1';
+                div.innerHTML = `<span class="text-[var(--viv-text-dim)] opacity-60">[Log]</span> ${log}`;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+
+            document.getElementById('progressBar').style.width = `${data.progress}%`;
+            document.getElementById('progressPercent').innerText = `${data.progress}%`;
+
+            // Sync Mini Bar
+            const miniBar = document.getElementById('miniProgressBarInner');
+            const miniPercent = document.getElementById('miniProgressPercent');
+            if (miniBar) miniBar.style.width = `${data.progress}%`;
+            if (miniPercent) miniPercent.innerText = `${data.progress}%`;
+
+            document.getElementById('statusLabel').innerText = data.status + ': ' + (data.logs[data.logs.length - 1] || 'Initializing...');
+
+            if (data.progress > 0 && data.progress < 100) {
+                const win = document.getElementById('progressWindow');
+                if (win.classList.contains('hidden') && !userClosedProgress) {
+                    document.getElementById('minimizedProgressBar').classList.remove('hidden');
+                }
+            }
+
+            if (data.progress === 100) {
+                document.getElementById('timeLeft').innerText = 'Completed';
+            } else {
+                const remaining = Math.max(0, 5 - Math.floor(data.progress / 20));
+                document.getElementById('timeLeft').innerText = `Est: ${remaining}m remaining`;
+            }
+        }
+
+        function generateYAML(config) {
+            const domain = config.domain;
+            const project = config.projectId || 'YOUR_PROJECT_ID';
+            const originRef = `projects/${project}/locations/global/edgeCacheOrigins/${config.originName}`;
+            const dualToken = config.dualToken || { enabled: false };
+
+            const createRoute = (desc, template, ttl, priority, securityType = null) => {
+                let cdnPolicy = `
+        cdnPolicy:
+          cacheMode: CACHE_ALL_STATIC
+          defaultTtl: ${ttl}
+          clientTtl: 1s`;
+
+                if (dualToken.enabled && securityType) {
+                    const shortKs = `projects/${project}/locations/global/edgeCacheKeysets/${dualToken.shortKeyset}`;
+                    const longKs = `projects/${project}/locations/global/edgeCacheKeysets/${dualToken.longKeyset}`;
+
+                    if (securityType === 'MASTER') {
+                        cdnPolicy += `
+          signedRequestMode: REQUIRE_TOKENS
+          signedRequestKeyset: ${shortKs}
+          signedRequestMaximumExpirationTtl: 3600s
+          addSignatures:
+            actions: [GENERATE_TOKEN_HLS_COOKIELESS]
+            keyset: ${longKs}
+            tokenQueryParameter: hdntl
+            tokenTtl: 86400s
+            copiedParameters: [data, Data, Headers, PathGlobs, SessionID, URLPrefix]
+          signedTokenOptions:
+            tokenQueryParameter: hdnts
+            allowedSignatureAlgorithms: [${dualToken.algorithm || 'HMAC_SHA_256'}]`;
+                    } else if (securityType === 'CHILD') {
+                        const useShort = dualToken.childUseShort;
+                        const ksToUse = useShort ? shortKs : longKs;
+                        const tokenParam = useShort ? 'hdnts' : 'hdntl';
+                        cdnPolicy += `
+          signedRequestMode: REQUIRE_TOKENS
+          signedRequestKeyset: ${ksToUse}
+          addSignatures:
+            actions: [PROPAGATE_TOKEN_HLS_COOKIELESS]
+            tokenQueryParameter: hdntl
+          signedTokenOptions:
+            tokenQueryParameter: ${tokenParam}`;
+                    } else if (securityType === 'SEGMENT') {
+                        cdnPolicy += `
+          signedRequestMode: REQUIRE_TOKENS
+          signedRequestKeyset: ${longKs}
+          signedTokenOptions:
+            tokenQueryParameter: hdntl`;
+                    }
+                }
+
+                return `
+    - description: ${desc}
+      priority: ${priority}
+      origin: ${originRef}
+      matchRules:
+      - pathTemplateMatch: ${template}
+        ignoreCase: true
+      routeAction:${cdnPolicy}
+        corsPolicy:
+          allowCredentials: true
+          allowHeaders: ['*']
+          allowMethods: ['*']
+          allowOrigins: ['*']
+          exposeHeaders: ['*']
+          maxAge: 600s
+      routeMethods:
+        allowedMethods: [GET, HEAD, OPTIONS]`;
+            };
+
+            let routeRules = '';
+
+            if (config.type === 'VOD') {
+                const ttl = "31536000s"; // 365 Days
+                routeRules =
+                    createRoute("HLS Master Manifest", "/**/manifest.m3u8", ttl, 1, "MASTER") +
+                    createRoute("HLS Child Playlist", "/**.m3u8", ttl, 2, "CHILD") +
+                    createRoute("Media Segments (TS)", "/**.ts", ttl, 3, "SEGMENT") +
+                    createRoute("DASH Manifest", "/**/manifest.mpd", ttl, 47) +
+                    createRoute("DASH Segments (m4s)", "/**.m4s", ttl, 48) +
+                    createRoute("DASH Segments (mp4)", "/**.mp4", ttl, 49) +
+                    createRoute("All Other Content", "/**", ttl, 100);
+            } else {
+                routeRules =
+                    createRoute("Live HLS Master", "/**/manifest.m3u8", "86400s", 1, "MASTER") +
+                    createRoute("Live HLS Child", "/**.m3u8", "2s", 2, "CHILD") +
+                    createRoute("Live DASH Manifest", "/**/manifest.mpd", "2s", 3) +
+                    createRoute("Live Media Chunks", "/**.ts", "31536000s", 4, "SEGMENT") +
+                    createRoute("Live Media Chunks (DASH)", "/**.m4s", "31536000s", 5) +
+                    createRoute("Default Catch-all", "/**", "3600s", 100);
+            }
+
+            return `name: ${config.name}
+routing:
+  hostRules:
+  - hosts: ["${domain}"]
+    pathMatcher: path-matcher-0
+  pathMatchers:
+  - name: path-matcher-0
+    routeRules:${routeRules}
+logConfig:
+  enable: true
+  sampleRate: 1.0`;
+        }
+
+        function generateCommands(config, yaml) {
+            return `# 1. Set the active project
+gcloud config set project ${config.projectId}
+
+# 2. Create the Edge Cache Origin
+gcloud edge-cache origins create ${config.originName} \\
+    --origin-address="${config.originDns}" \\
+    --protocol=HTTPS \\
+    --port=443
+
+# 3. Save the Service Manifest to service.yaml
+cat <<EOF > service.yaml
+${yaml}
+EOF
+
+# 4. Import the Service Configuration
+gcloud edge-cache services import ${config.name} --source=service.yaml`;
+        }
+
+
+        function downloadYAML() {
+            const config = {
+                name: document.getElementById('setupName').value,
+                domain: document.getElementById('domainName').value || '*',
+                originName: document.getElementById('originName').value,
+                type: currentType,
+                projectId: loadedConfig ? loadedConfig.project_id : 'YOUR_PROJECT_ID',
+                dualToken: {
+                    enabled: document.getElementById('enableDualToken').checked,
+                    shortKeyset: document.getElementById('shortKeysetSelect').value,
+                    longKeyset: document.getElementById('longKeysetSelect').value,
+                    algorithm: document.getElementById('shortTokenAlgorithm').value,
+                    childUseShort: document.getElementById('childUseShortToken').checked
+                }
+            };
+            const yaml = generateYAML(config);
+            const blob = new Blob([yaml], { type: 'text/yaml' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${config.name}.yaml`;
+            a.click();
+        }
+
+        function copyCommands() {
+            const text = document.getElementById('commandText').innerText;
+            navigator.clipboard.writeText(text);
+            showNotification('Commands copied to clipboard!');
+        }
+
+        // WAF Logic
+        const wafPrompt = document.getElementById('wafPrompt');
+        const analyzeWafBtn = document.getElementById('analyzeWafBtn');
+        const wafAiResult = document.getElementById('wafAiResult');
+        const wafExplanation = document.getElementById('wafExplanation');
+        const wafCommandText = document.getElementById('wafCommandText');
+        const applyWafBtn = document.getElementById('applyWafBtn');
+        const discardWafBtn = document.getElementById('discardWafBtn');
+        const wafHistory = document.getElementById('wafHistory');
+
+        let pendingWafChanges = null;
+
+        analyzeWafBtn.addEventListener('click', async () => {
+            const prompt = wafPrompt.value.trim();
+            if (!prompt) return;
+
+            analyzeWafBtn.disabled = true;
+            analyzeWafBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Analyzing...</span>';
+            lucide.createIcons();
+
+            // Simulate Gemini Flash AI analysis
+            setTimeout(() => {
+                const result = simulateGeminiWaf(prompt);
+                pendingWafChanges = result;
+
+                wafExplanation.innerText = result.explanation;
+                wafCommandText.innerText = result.commands;
+
+                wafAiResult.classList.remove('hidden');
+                analyzeWafBtn.disabled = false;
+                analyzeWafBtn.innerHTML = '<span>Analyze</span><i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                lucide.createIcons();
+
+                showNotification('Gemini has analyzed your request');
+            }, 1500);
+        });
+
+        applyWafBtn.addEventListener('click', async () => {
+            if (!pendingWafChanges) return;
+
+            applyWafBtn.disabled = true;
+            applyWafBtn.innerText = 'Implementing...';
+
+            // Simulate deployment
+            setTimeout(() => {
+                const actionItem = document.createElement('div');
+                actionItem.className = 'glass bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/20 flex justify-between items-center group animate-in slide-in-from-right-4 duration-300';
+                actionItem.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">${pendingWafChanges.actionTitle}</p>
+                            <p class="text-[10px] text-slate-500">${new Date().toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg font-bold">SUCCESS</span>
+                `;
+
+                if (wafHistory.querySelector('p')) {
+                    wafHistory.innerHTML = '';
+                }
+
+                wafHistory.prepend(actionItem);
+                wafAiResult.classList.add('hidden');
+                wafPrompt.value = '';
+                pendingWafChanges = null;
+                applyWafBtn.disabled = false;
+                applyWafBtn.innerText = 'Implement Changes';
+
+                showNotification('WAF Policy Updated Successfully!');
+                lucide.createIcons();
+            }, 2000);
+        });
+
+        discardWafBtn.addEventListener('click', () => {
+            wafAiResult.classList.add('hidden');
+            pendingWafChanges = null;
+        });
+
+        function simulateGeminiWaf(prompt) {
+            const p = prompt.toLowerCase();
+            let actionTitle = "Custom WAF Update";
+            let explanation = "Based on your request, I've generated the gcloud commands to update your Cloud Armor security policy.";
+            let commands = "";
+
+            if (p.includes('block') && p.includes('ip')) {
+                const ipMatch = prompt.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+                const ip = ipMatch ? ipMatch[0] : '1.2.3.4';
+                actionTitle = `Block IP: ${ip}`;
+                explanation = `I will add a new high-priority rule to 'altostrat-waf-policy' to deny all traffic from the IP address ${ip}. This change will be effective globally within seconds.`;
+                commands = `gcloud compute security-policies rules create 1000 \\
+    --security-policy=altostrat-waf-policy \\
+    --description="Deny access to ${ip}" \\
+    --src-ip-ranges="${ip}" \\
+    --action="deny-403"`;
+            } else if (p.includes('rate limit') || p.includes('throttle')) {
+                actionTitle = "Add Rate Limiting";
+                explanation = "I am configuring a rate limiting rule for your policy. This will protect your backend from volumetric attacks by limiting requests per client IP.";
+                commands = `gcloud compute security-policies rules create 2000 \\
+    --security-policy=altostrat-waf-policy \\
+    --description="Rate limit API requests" \\
+    --src-ip-ranges="*" \\
+    --action="rate-based-ban" \\
+    --rate-limit-threshold-count=100 \\
+    --rate-limit-threshold-interval-sec=60 \\
+    --conform-action="allow" \\
+    --exceed-action="deny-429"`;
+            } else {
+                commands = `gcloud compute security-policies rules create 3000 \\
+    --security-policy=altostrat-waf-policy \\
+    --description="Security enhancement: ${prompt}" \\
+    --src-ip-ranges="*" \\
+    --action="allow"`;
+            }
+
+            return { actionTitle, explanation, commands };
+        }
+    </script>
+
+    <!-- Create Origin Modal -->
+    <div id="originModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+        <div class="viv-card w-full max-w-2xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-300">
+            <!-- Modal Header -->
+            <div class="viv-card-header flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="database" class="w-4 h-4 text-[#ff9900]"></i>
+                    <span class="font-bold">Create Edge Cache Origin</span>
+                </div>
+                <button onclick="closeOriginModal()"
+                    class="p-1 hover:bg-[var(--viv-border)] rounded transition-colors text-[var(--viv-text-dim)]">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar bg-[var(--viv-card-bg)]">
+                <section>
+                    <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-6">Origin
+                        Settings</p>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--viv-text-dim)] mb-2">Origin Name <span
+                                    class="text-[var(--viv-text-dim)] opacity-60 font-normal italic">-
+                                    required</span></label>
+                            <input type="text" id="modalOriginName" placeholder="e.g., storage-bucket-origin"
+                                class="w-full viv-input px-4 py-2 text-sm">
+                            <p class="text-[10px] text-[var(--viv-text-dim)] opacity-60 mt-2">Lowercase alphanumeric
+                                characters only.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--viv-text-dim)] mb-2">Description</label>
+                            <textarea id="modalOriginDesc" rows="2"
+                                placeholder="Briefly describe this content source..."
+                                class="w-full viv-input px-4 py-2 text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-6">Origin
+                        Source</p>
+                    <div class="space-y-6">
+                        <div class="flex flex-col gap-3">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="radio" name="addrType" value="bucket" checked
+                                    onchange="toggleOriginAddressType('bucket')" class="w-4 h-4 accent-[#ff9900]">
+                                <span class="text-sm text-[var(--viv-text-dim)]">Google Cloud Storage bucket</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="radio" name="addrType" value="fqdn"
+                                    onchange="toggleOriginAddressType('fqdn')" class="w-4 h-4 accent-[#ff9900]">
+                                <span class="text-sm text-[var(--viv-text-dim)]">Custom FQDN or IP address</span>
+                            </label>
+                        </div>
+
+                        <div id="bucketSelection"
+                            class="p-4 bg-[var(--viv-header-bg)] border border-[var(--viv-border)] rounded">
+                            <div class="flex items-center gap-3 mb-3">
+                                <i data-lucide="archive" class="w-4 h-4 text-[#ff9900]"></i>
+                                <span class="text-xs font-bold text-[var(--viv-text-dim)]">GCS Bucket</span>
+                            </div>
+                            <div class="relative">
+                                <select id="modalBucketList" onchange="checkIAM(this.value)"
+                                    class="w-full viv-input px-4 py-2 text-sm appearance-none pr-10">
+                                    <option value="">Choose a bucket...</option>
+                                </select>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <i data-lucide="chevron-down" class="w-4 h-4 text-[var(--viv-text-dim)]"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="fqdnSelection"
+                            class="hidden p-4 bg-[var(--viv-header-bg)] border border-[var(--viv-border)] rounded">
+                            <div class="flex items-center gap-3 mb-3">
+                                <i data-lucide="globe" class="w-4 h-4 text-[#ff9900]"></i>
+                                <span class="text-xs font-bold text-[var(--viv-text-dim)]">Destination Address</span>
+                            </div>
+                            <input type="text" id="modalOriginFqdn" placeholder="e.g. storage.googleapis.com"
+                                class="w-full viv-input px-4 py-2 text-sm">
+                        </div>
+
+                        <div id="iamWarning"
+                            class="hidden mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg animate-in fade-in slide-in-from-top-2">
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+                                </div>
+                                <div class="flex-grow">
+                                    <p class="text-xs font-bold text-amber-500">Media CDN Access Required</p>
+                                    <p class="text-[10px] text-amber-500/80 mt-1 leading-relaxed">
+                                        The Media CDN service account does not have read access (objectViewer) to this
+                                        bucket.
+                                        You must grant access for the CDN to pull content.
+                                    </p>
+                                    <div class="mt-4 flex flex-wrap items-center gap-3">
+                                        <button id="grantAccessBtn" onclick="grantBucketAccess()"
+                                            class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded text-[10px] font-bold shadow-sm transition-all flex items-center gap-2">
+                                            <i data-lucide="key" class="w-3 h-3"></i> Grant Access Now
+                                        </button>
+                                        <div id="grantStatus"
+                                            class="hidden text-[10px] font-bold text-amber-600 flex items-center gap-2">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></div>
+                                            Updating Policy...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-6">
+                        Connection Settings
+                    </p>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-[var(--viv-text-dim)] px-1">Protocol</label>
+                            <div class="relative">
+                                <select id="modalProtocol"
+                                    class="w-full viv-input px-4 py-2 text-sm appearance-none pr-10">
+                                    <option value="HTTP2">HTTP2 (Recommended)</option>
+                                    <option value="HTTPS">HTTPS</option>
+                                    <option value="HTTP">HTTP</option>
+                                </select>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <i data-lucide="chevron-down" class="w-4 h-4 text-[var(--viv-text-dim)]"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-[var(--viv-text-dim)] px-1">Port</label>
+                            <input type="number" id="modalPort" value="443" class="w-full viv-input px-4 py-2 text-sm">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Origin Controls -->
+                <section>
+                    <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-6">Override
+                        Policies</p>
+                    <div class="space-y-8">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="modalOverrideEnabled" checked
+                                class="mt-1 w-4 h-4 accent-[#ff9900]">
+                            <div>
+                                <p class="text-sm font-bold text-[var(--viv-text)]">Enable Header Overrides</p>
+                                <p class="text-[10px] text-[var(--viv-text-dim)] mt-1 max-w-sm">Force specific headers
+                                    to be sent to
+                                    the origin, ignoring client requests.</p>
+                            </div>
+                        </label>
+
+                        <div class="bg-[var(--viv-subtle)] rounded p-6 border border-[var(--viv-border)] space-y-6">
+                            <div class="space-y-4">
+                                <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest">
+                                    Custom Headers
+                                </p>
+                                <div id="modalHeadersList" class="space-y-3">
+                                    <!-- Default Host Header -->
+                                    <div class="grid grid-cols-12 gap-3 items-center">
+                                        <div class="col-span-4">
+                                            <input type="text" value="Host" readonly
+                                                class="w-full viv-input px-3 py-1.5 text-xs opacity-50 cursor-not-allowed">
+                                        </div>
+                                        <div class="col-span-7">
+                                            <input type="text" placeholder="e.g. storage.googleapis.com"
+                                                id="modalHostHeader" class="w-full viv-input px-3 py-1.5 text-xs">
+                                        </div>
+                                        <div class="col-span-1"></div>
+                                    </div>
+                                </div>
+                                <button onclick="addOriginHeaderRow()"
+                                    class="viv-btn-secondary px-4 py-1.5 text-[11px] flex items-center gap-2">
+                                    <i data-lucide="plus" class="w-3 h-3"></i> Add header
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-[var(--viv-border)] bg-[var(--viv-header-bg)] flex justify-end gap-3">
+                <button onclick="closeOriginModal()" class="viv-btn-secondary px-6 py-2 text-xs">Cancel</button>
+                <button onclick="submitOriginModal()" class="viv-btn-primary px-8 py-2 text-xs">Create Origin</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Store buckets globally for the modal
+        let allBuckets = [];
+
+        async function openOriginModal() {
+            const modal = document.getElementById('originModal');
+            modal.classList.remove('hidden');
+            // Fetch buckets for the dropdown
+            try {
+                const resp = await fetch('/api/buckets');
+                const data = await resp.json();
+                allBuckets = data.buckets || [];
+                const list = document.getElementById('modalBucketList');
+                list.innerHTML = '<option value="">Choose a bucket...</option>';
+                allBuckets.forEach(b => {
+                    const option = document.createElement('option');
+                    option.value = `gs://${b.name}`;
+                    option.innerText = b.name;
+                    list.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Error loading buckets:', err);
+            }
+            lucide.createIcons();
+        }
+
+        function closeOriginModal() {
+            document.getElementById('originModal').classList.add('hidden');
+        }
+
+        function toggleOriginAddressType(type) {
+            const bucketEl = document.getElementById('bucketSelection');
+            const fqdnEl = document.getElementById('fqdnSelection');
+            const warning = document.getElementById('iamWarning');
+            if (type === 'bucket') {
+                bucketEl.classList.remove('hidden');
+                fqdnEl.classList.add('hidden');
+                // Auto-fill host header for GCS
+                document.getElementById('modalHostHeader').value = 'storage.googleapis.com';
+            } else {
+                bucketEl.classList.add('hidden');
+                fqdnEl.classList.remove('hidden');
+                if (warning) warning.classList.add('hidden');
+                // Reset host header if it was auto-filled
+                if (document.getElementById('modalHostHeader').value === 'storage.googleapis.com') {
+                    document.getElementById('modalHostHeader').value = '';
+                }
+            }
+        }
+
+        function addOriginHeaderRow() {
+            const list = document.getElementById('modalHeadersList');
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-12 gap-3 items-center animate-in slide-in-from-left-2 duration-300';
+            row.innerHTML = `
+                <div class="col-span-4">
+                    <input type="text" placeholder="Header Name"
+                        class="header-name w-full viv-input px-3 py-1.5 text-xs">
+                </div>
+                <div class="col-span-7">
+                    <input type="text" placeholder="Header Value"
+                        class="header-val w-full viv-input px-3 py-1.5 text-xs">
+                </div>
+                <div class="col-span-1 text-center">
+                    <button onclick="this.closest('.grid').remove()" class="text-[var(--viv-text-dim)] hover:text-red-500 transition-colors">
+                        <i data-lucide="minus-circle" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(row);
+            lucide.createIcons();
+        }
+
+        async function submitOriginModal() {
+            const name = document.getElementById('modalOriginName').value.trim();
+            const addrType = document.querySelector('input[name="addrType"]:checked').value;
+            const bucketVal = document.getElementById('modalBucketList').value;
+            const fqdnVal = document.getElementById('modalOriginFqdn').value.trim();
+            const dns = addrType === 'bucket' ? bucketVal : fqdnVal;
+
+            // Collect new fields
+            const description = document.getElementById('modalOriginDesc').value.trim();
+            const protocol = document.getElementById('modalProtocol').value;
+            const port = document.getElementById('modalPort').value;
+            const hostHeader = document.getElementById('modalHostHeader').value.trim();
+
+            if (!name || !dns) {
+                showNotification('Origin Name and Address are required', true);
+                return;
+            }
+
+            const btn = document.querySelector('[onclick="submitOriginModal()"]');
+            btn.disabled = true;
+            btn.innerText = 'Creating...';
+
+            try {
+                // Actually creating the origin via existing API
+                const resp = await fetch('/api/origins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: loadedConfig.project_id,
+                        origin_name: name,
+                        origin_dns: dns,
+                        description: description,
+                        protocol: protocol,
+                        port: port,
+                        host_header: hostHeader,
+                        key_data: loadedConfig
+                    })
+                });
+                const data = await resp.json();
+
+                deployingOrigins.add(name);
+                loadOrigins();
+                pollOriginStatus(data.job_id, name);
+
+                closeOriginModal();
+                showNotification(`Origin ${name} creation started`);
+
+                document.getElementById('progressWindow').classList.remove('hidden');
+                document.getElementById('statusPlaceholder').classList.add('hidden');
+                document.getElementById('statusPanel').classList.remove('hidden');
+
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Create Origin';
+            }
+        }
+
+        function minimizeProgress() {
+            const win = document.getElementById('progressWindow');
+            win.classList.add('hidden');
+            document.getElementById('minimizedProgressBar').classList.remove('hidden');
+            showNotification('Monitoring minimized to bottom bar');
+        }
+
+        function expandProgress() {
+            document.getElementById('minimizedProgressBar').classList.add('hidden');
+            const win = document.getElementById('progressWindow');
+            win.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeProgress() {
+            if (confirm('Hide deployment monitor? The process will continue in the background.')) {
+                userClosedProgress = true;
+                document.getElementById('progressWindow').classList.add('hidden');
+                document.getElementById('minimizedProgressBar').classList.add('hidden');
+            }
+        }
+
+        async function checkIAM(bucketName) {
+            const warning = document.getElementById('iamWarning');
+            if (!bucketName) {
+                warning.classList.add('hidden');
+                return;
+            }
+
+            // Extract bucket name from storage.googleapis.com/bucket-name
+            const cleanName = bucketName.split('/').pop();
+
+            try {
+                const resp = await fetch(`/api/iam/check-bucket?bucket=${cleanName}`);
+                const data = await resp.json();
+
+                if (data.has_access) {
+                    warning.classList.add('hidden');
+                    showNotification('Bucket permissions verified');
+                } else {
+                    warning.classList.remove('hidden');
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error('IAM Check failed:', err);
+            }
+        }
+
+        async function grantBucketAccess() {
+            const bucketVal = document.getElementById('modalBucketList').value;
+            const cleanName = bucketVal.split('/').pop();
+            const btn = document.getElementById('grantAccessBtn');
+            const status = document.getElementById('grantStatus');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            status.classList.remove('hidden');
+
+            try {
+                const resp = await fetch('/api/iam/grant-bucket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bucket: cleanName })
+                });
+
+                if (resp.ok) {
+                    showNotification('Permissions granted successfully!');
+                    document.getElementById('iamWarning').classList.add('hidden');
+                } else {
+                    showNotification('Failed to grant permissions', true);
+                }
+            } catch (err) {
+                showNotification(err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                status.classList.add('hidden');
+            }
+        }
+
+        // --- Theme Management ---
+        const themeToggle = document.getElementById('themeToggle');
+        const sunIcon = document.querySelector('.sun-icon');
+        const moonIcon = document.querySelector('.moon-icon');
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcons(isDark);
+        }
+
+        function updateThemeIcons(isDark) {
+            if (isDark) {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initialDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
+
+        if (initialDark) {
+            document.documentElement.classList.add('dark');
+        }
+        updateThemeIcons(initialDark);
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        function showNotification(msg, isError = false) {
+            const toast = document.getElementById('notification');
+            const text = document.getElementById('notificationText');
+            text.innerText = msg;
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>
