@@ -26,3 +26,4 @@ server.log
 
 # UI/Build
 node_modules/
+.env

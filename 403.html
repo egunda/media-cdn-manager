@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied - Media CDN Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --viv-bg: #0d1117;
+            --viv-card: #161c22;
+            --viv-border: #30363d;
+            --viv-text: #f0f6fc;
+            --viv-text-dim: #8b949e;
+            --viv-orange: #ff9900;
+        }
+        body { font-family: 'Open Sans', sans-serif; background: var(--viv-bg); color: var(--viv-text); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-[var(--viv-card)] border border-[var(--viv-border)] rounded shadow-2xl p-10 text-center">
+        <div class="flex justify-center mb-8">
+            <div class="p-5 bg-red-900/10 rounded-full border border-red-900/20">
+                <i data-lucide="shield-alert" class="w-16 h-16 text-red-500"></i>
+            </div>
+        </div>
+        
+        <h1 class="text-3xl font-bold mb-4">403 Forbidden</h1>
+        <p class="text-[var(--viv-text-dim)] mb-8 leading-relaxed">
+            The account <span class="text-white font-mono bg-[var(--viv-border)] px-2 py-0.5 rounded text-sm" id="deniedEmail">{{EMAIL}}</span><br>
+            is not authorized to access this console.
+        </p>
+        
+        <div class="space-y-4">
+            <a href="/gauth/login" class="flex items-center justify-center gap-2 w-full bg-[var(--viv-orange)] hover:bg-[#ec8b00] text-white font-bold py-3.5 px-4 rounded transition-all duration-200 shadow-lg shadow-orange-950/20">
+                <i data-lucide="log-in" class="w-4 h-4"></i>
+                <span>Switch Account</span>
+            </a>
+            <a href="/" class="flex items-center justify-center gap-2 w-full bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] font-semibold py-3.5 px-4 rounded border border-[var(--viv-border)] transition-all duration-200">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                <span>Return to Home</span>
+            </a>
+        </div>
+        
+        <div class="mt-10 pt-8 border-t border-[var(--viv-border)]">
+            <p class="text-[10px] text-[var(--viv-text-dim)] uppercase tracking-widest font-bold">
+                Security Enforcement Active
+            </p>
+            <p class="mt-2 text-[11px] text-[var(--viv-text-dim)]">
+                Unauthorized access attempts are logged and reported to the system administrator.
+            </p>
+        </div>
+    </div>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
