@@ -14,7 +14,11 @@ import urllib.parse
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from urllib.parse import urlparse, parse_qs
-from media_cdn_api import get_access_token, make_gcp_request, get_project_number, check_bucket_iam, grant_bucket_iam
+from media_cdn_api import (
+    get_access_token, make_gcp_request, get_project_number, 
+    check_bucket_iam, grant_bucket_iam, create_gcs_bucket,
+    upload_gcs_object, list_gcs_object_versions, get_gcs_object_content
+)
 
 # In-memory job storage
 jobs = {}
@@ -125,6 +129,56 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "Success"}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+        elif path == '/api/staging/create':
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                payload = json.loads(post_data.decode('utf-8'))
+                
+                job_id = f"staging_{int(time.time())}"
+                jobs[job_id] = {
+                    "status": "Starting",
+                    "progress": 0,
+                    "logs": ["Staging creation initiated..."]
+                }
+                
+                thread = threading.Thread(target=run_staging_task, args=(job_id, payload))
+                thread.start()
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"job_id": job_id}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+        elif path == '/api/staging/promote':
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                payload = json.loads(post_data.decode('utf-8'))
+                
+                job_id = f"promote_{int(time.time())}"
+                jobs[job_id] = {
+                    "status": "Starting",
+                    "progress": 0,
+                    "logs": ["Promotion to production initiated..."]
+                }
+                
+                thread = threading.Thread(target=run_promotion_task, args=(job_id, payload))
+                thread.start()
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"job_id": job_id}).encode())
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
@@ -550,6 +604,51 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
+        elif path == '/api/staging/versions':
+            try:
+                query = parse_qs(urlparse(self.path).query)
+                service_id = query.get('service', [None])[0]
+                if not service_id:
+                    raise Exception("Service ID is required")
+                
+                backend_dir = os.path.dirname(os.path.abspath(__file__))
+                root_dir = os.path.dirname(backend_dir)
+                creds_path = os.path.join(root_dir, 'credentials', 'key.json')
+                with open(creds_path, 'r') as f:
+                    key_data = json.load(f)
+                
+                project_id = key_data['project_id']
+                token = get_access_token(key_data)
+                project_number = get_project_number(project_id, token)
+                bucket_name = f"{project_number}-mediacdn-do-not-delete"
+                
+                versions = []
+                try:
+                    raw_versions = list_gcs_object_versions(bucket_name, f"{service_id}.json", token)
+                    for v in raw_versions:
+                        try:
+                            content = get_gcs_object_content(bucket_name, f"{service_id}.json", v["generation"], token)
+                            config = json.loads(content)
+                            versions.append({
+                                "generation": v["generation"],
+                                "updated": v["updated"],
+                                "description": config.get("description", "No description provided")
+                            })
+                        except:
+                            pass
+                    versions.sort(key=lambda x: int(x["generation"]), reverse=True)
+                except Exception as e:
+                    print(f"Error listing versions: {e}")
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"versions": versions}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         else:
             if path.startswith('/api/'):
                 print(f"Unknown API path: {path}")
@@ -803,6 +902,158 @@ def run_deployment_task(job_id, payload):
             jobs[job_id].update({"progress": p, "status": f"Deploying ({elapsed}s)"})
             time.sleep(20)
 
+    except Exception as e:
+        jobs[job_id]["status"] = "Failed"
+        jobs[job_id]["logs"].append(f"Error: {str(e)}")
+
+def run_staging_task(job_id, payload):
+    try:
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(backend_dir)
+        creds_path = os.path.join(root_dir, 'credentials', 'key.json')
+        with open(creds_path, 'r') as f:
+            key_data = json.load(f)
+        
+        project_id = key_data['project_id']
+        service_id = payload['service_id']
+        staging_service_id = f"{service_id}-staging"
+        bucket_region = payload.get('region', 'asia-south1') # Mumbai default
+        
+        jobs[job_id]["logs"].append(f"Starting cloning process for {service_id}...")
+        token = get_access_token(key_data)
+        project_number = get_project_number(project_id, token)
+        bucket_name = f"{project_number}-mediacdn-do-not-delete"
+        
+        # 1. Fetch original service
+        jobs[job_id]["logs"].append("Fetching original service configuration...")
+        url_fetch = f"https://networkservices.googleapis.com/v1alpha1/projects/{project_id}/locations/global/edgeCacheServices/{service_id}"
+        original_service = make_gcp_request(url_fetch, token=token)
+        
+        # 2. Prepare staging config
+        jobs[job_id]["logs"].append(f"Preparing staging config: {staging_service_id}...")
+        staging_body = original_service.copy()
+        for field in ["updateTime", "createTime", "etag", "ipv4Addresses", "ipv6Addresses", "name"]:
+            staging_body.pop(field, None)
+        
+        # Update description if needed (user might want version notes)
+        staging_body["description"] = payload.get("description", f"Staging for {service_id}")
+        
+        # 3. Deploy staging
+        jobs[job_id]["logs"].append(f"Deploying staging service...")
+        url_deploy = f"https://networkservices.googleapis.com/v1alpha1/projects/{project_id}/locations/global/edgeCacheServices?edgeCacheServiceId={staging_service_id}"
+        
+        try:
+            # Check if staging already exists, if so update it
+            url_check = f"https://networkservices.googleapis.com/v1alpha1/projects/{project_id}/locations/global/edgeCacheServices/{staging_service_id}"
+            make_gcp_request(url_check, token=token)
+            jobs[job_id]["logs"].append("Staging service already exists. Updating...")
+            url_deploy = f"{url_check}?updateMask=routing,logConfig,edgeSslCertificates,description"
+            resp = make_gcp_request(url_deploy, method="PATCH", data=staging_body, token=token)
+        except:
+            # Create new
+            resp = make_gcp_request(url_deploy, method="POST", data=staging_body, token=token)
+            
+        operation_name = resp["name"]
+        jobs[job_id]["logs"].append(f"Operation started: {operation_name}")
+        
+        start_time = time.time()
+        while True:
+            op_url = f"https://networkservices.googleapis.com/v1alpha1/{operation_name}"
+            op_resp = make_gcp_request(op_url, token=token)
+            if op_resp.get("done"):
+                if op_resp.get("error"):
+                    raise Exception(f"Deployment failed: {op_resp['error']}")
+                break
+            
+            elapsed = int(time.time() - start_time)
+            p = min(80, 10 + int((elapsed / 300) * 70))
+            jobs[job_id].update({"progress": p, "status": f"Deploying Staging ({elapsed}s)"})
+            time.sleep(20)
+
+        # 4. Sync YAML to GCS
+        jobs[job_id]["logs"].append(f"Ensuring GCS bucket {bucket_name} exists in {bucket_region}...")
+        create_gcs_bucket(bucket_name, project_id, bucket_region, token)
+        
+        jobs[job_id]["logs"].append(f"Syncing configuration to GCS with versioning...")
+        upload_gcs_object(bucket_name, f"{service_id}.json", staging_body, token)
+        
+        # Also sync other YAMLs in sample-configs if requested?
+        # "Sync all the yaml in this directory"
+        # Let's assume this means the sample-configs for now as a baseline
+        sample_dir = os.path.join(root_dir, "sample-configs")
+        if os.path.exists(sample_dir):
+            for filename in os.listdir(sample_dir):
+                if filename.endswith(".yaml"):
+                    try:
+                        with open(os.path.join(sample_dir, filename), "r") as f:
+                            content = f.read()
+                        upload_gcs_object(bucket_name, filename, content, token, content_type="text/plain")
+                    except:
+                        pass
+
+        jobs[job_id]["progress"] = 100
+        jobs[job_id]["status"] = "Success"
+        jobs[job_id]["logs"].append("Staging environment created and synced successfully!")
+        
+    except Exception as e:
+        jobs[job_id]["status"] = "Failed"
+        jobs[job_id]["logs"].append(f"Error: {str(e)}")
+
+def run_promotion_task(job_id, payload):
+    try:
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(backend_dir)
+        creds_path = os.path.join(root_dir, 'credentials', 'key.json')
+        with open(creds_path, 'r') as f:
+            key_data = json.load(f)
+        
+        project_id = key_data['project_id']
+        service_id = payload['service_id'] # target production service
+        staging_service_id = f"{service_id}-staging"
+        generation = payload.get('generation') # optional: promote specific version
+        
+        token = get_access_token(key_data)
+        
+        # 1. Fetch config to promote
+        if generation:
+            jobs[job_id]["logs"].append(f"Promoting version {generation} to production...")
+            project_number = get_project_number(project_id, token)
+            bucket_name = f"{project_number}-mediacdn-do-not-delete"
+            promote_config = json.loads(get_gcs_object_content(bucket_name, f"{service_id}.json", generation, token))
+        else:
+            jobs[job_id]["logs"].append(f"Promoting current staging config to production...")
+            url_fetch = f"https://networkservices.googleapis.com/v1alpha1/projects/{project_id}/locations/global/edgeCacheServices/{staging_service_id}"
+            promote_config = make_gcp_request(url_fetch, token=token)
+        
+        # 2. Prepare production config (strip fields)
+        for field in ["updateTime", "createTime", "etag", "ipv4Addresses", "ipv6Addresses", "name"]:
+            promote_config.pop(field, None)
+            
+        # 3. Deploy to production
+        jobs[job_id]["logs"].append(f"Updating production service {service_id}...")
+        url_update = f"https://networkservices.googleapis.com/v1alpha1/projects/{project_id}/locations/global/edgeCacheServices/{service_id}?updateMask=routing,logConfig,edgeSslCertificates,description"
+        
+        resp = make_gcp_request(url_update, method="PATCH", data=promote_config, token=token)
+        operation_name = resp["name"]
+        
+        start_time = time.time()
+        while True:
+            op_url = f"https://networkservices.googleapis.com/v1alpha1/{operation_name}"
+            op_resp = make_gcp_request(op_url, token=token)
+            if op_resp.get("done"):
+                if op_resp.get("error"):
+                    raise Exception(f"Promotion failed: {op_resp['error']}")
+                break
+            
+            elapsed = int(time.time() - start_time)
+            p = min(100, 10 + int((elapsed / 300) * 90))
+            jobs[job_id].update({"progress": p, "status": f"Promoting ({elapsed}s)"})
+            time.sleep(20)
+
+        jobs[job_id]["progress"] = 100
+        jobs[job_id]["status"] = "Success"
+        jobs[job_id]["logs"].append("Production environment updated successfully!")
+        
     except Exception as e:
         jobs[job_id]["status"] = "Failed"
         jobs[job_id]["logs"].append(f"Error: {str(e)}")

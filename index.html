@@ -158,6 +158,34 @@
             border-radius: 20px;
             text-transform: uppercase;
         }
+
+        .staging-card {
+            background: linear-gradient(135deg, var(--viv-card-bg) 0%, var(--viv-accent-subtle) 100%);
+            border: 2px solid var(--viv-blue);
+        }
+
+        .version-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--viv-border);
+            color: var(--viv-text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .version-pill:hover {
+            background: var(--viv-blue);
+            color: white;
+        }
+
+        .version-pill.active {
+            background: var(--viv-orange);
+            color: white;
+        }
     </style>
 </head>
 
@@ -542,9 +570,107 @@
                                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                                     </button>
                                 </div>
-                        </form>
-                    </div>
-                </div>
+                            </form>
+                            </div>
+                            </div>
+                        <!-- Staging Management Panel -->
+                        <div id="stagingSection" class="hidden viv-card staging-card mb-8 animate-in slide-in-from-top-4 duration-500">
+                            <div class="viv-card-header flex justify-between items-center border-b-2 border-[var(--viv-blue)]/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4 text-[var(--viv-blue)]"></i>
+                                    <span class="text-[var(--viv-blue)]">Staging Environment Control</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span id="stagingStatusLabel" class="status-badge bg-blue-100 text-[var(--viv-blue)]">NOT CREATED</span>
+                                    <div class="h-4 w-px bg-[var(--viv-border)]"></div>
+                                    <button onclick="loadStagingInfo()" class="viv-btn-secondary p-1.5" title="Refresh Staging">
+                                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        
+                            <div class="p-8">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    <!-- Left Side: Staging Controls -->
+                                    <div class="space-y-6">
+                                        <div>
+                                            <h3 class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider mb-4">Environment
+                                                Status</h3>
+                                            <div class="space-y-4">
+                                                <div
+                                                    class="flex items-center justify-between p-3 bg-[var(--viv-bg)] rounded border border-[var(--viv-border)]">
+                                                    <div>
+                                                        <p class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Production IP</p>
+                                                        <p id="prodIp" class="text-sm font-mono font-bold text-[var(--viv-text)]">Detecting...
+                                                        </p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <p class="text-[10px] text-green-600 font-bold uppercase">Public</p>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="flex items-center justify-between p-3 bg-[var(--viv-bg)] rounded border border-[var(--viv-border)]">
+                                                    <div>
+                                                        <p class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Staging IP</p>
+                                                        <p id="stagingIp" class="text-sm font-mono font-bold text-[var(--viv-blue)]">
+                                                            Detecting...</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <p class="text-[10px] text-[var(--viv-blue)] font-bold uppercase">Sandbox</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                        
+                                        <div class="space-y-4 pt-4">
+                                            <div class="flex flex-col gap-2">
+                                                <label class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">Version Notes /
+                                                    Description</label>
+                                                <input type="text" id="stagingVersionNotes"
+                                                    placeholder="e.g., Update TTL for VOD chunks, Added Dual Token..."
+                                                    class="w-full viv-input px-3 py-2 text-sm focus:ring-0">
+                                            </div>
+                                            <div class="flex flex-col gap-2">
+                                                <label class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">GCS Storage
+                                                    Region</label>
+                                                <select id="stagingBucketRegion" class="w-full viv-input px-3 py-2 text-sm">
+                                                    <option value="asia-south1">Mumbai (asia-south1)</option>
+                                                    <option value="us-central1">US Central (Iowa)</option>
+                                                    <option value="europe-west1">Belgium</option>
+                                                    <option value="asia-east1">Taiwan</option>
+                                                </select>
+                                            </div>
+                                            <div class="flex gap-4 pt-2">
+                                                <button onclick="createStaging()"
+                                                    class="viv-btn-primary flex-1 py-3 text-xs flex items-center justify-center gap-2">
+                                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                                    Modify & Sync Staging
+                                                </button>
+                                                <button onclick="promoteToProd()" id="promoteBtn" disabled
+                                                    class="viv-btn-secondary flex-1 py-3 text-xs flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
+                                                    <i data-lucide="rocket" class="w-4 h-4"></i>
+                                                    Promote to Production
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <!-- Right Side: Version History (GCS) -->
+                                    <div class="border-l border-[var(--viv-border)] pl-12">
+                                        <h3
+                                            class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider mb-4 flex justify-between items-center">
+                                            Version History (GCS Sync)
+                                            <span class="text-[10px] font-normal lowercase italic">Stored with versioning enabled</span>
+                                        </h3>
+                                        <div id="versionList" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                            <!-- Versions go here -->
+                                            <div class="text-center py-8 text-[var(--viv-text-dim)] animate-pulse">
+                                                <p class="text-xs font-bold uppercase tracking-widest">Scanning GCS...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
             </section>
 
@@ -1111,6 +1237,162 @@
             }
         }
 
+                        // --- Staging logic ---
+                        let selectedServiceForStaging = null;
+                        let selectedGeneration = null;
+
+                        async function loadStagingInfo() {
+                            const serviceId = document.getElementById('serviceList').value;
+                            if (!serviceId) {
+                                document.getElementById('stagingSection').classList.add('hidden');
+                                return;
+                            }
+
+                            selectedServiceForStaging = serviceId;
+                            document.getElementById('stagingSection').classList.remove('hidden');
+                            document.getElementById('stagingStatusLabel').innerText = 'SCANNING...';
+
+                            try {
+                                // 1. Get Production Info
+                                const prodResp = await fetch(`/api/service/${serviceId}`);
+                                const prodData = await prodResp.json();
+                                const prodIps = (prodData.ipv4Addresses || []).join(', ');
+                                document.getElementById('prodIp').innerText = prodIps || 'N/A';
+
+                                // 2. Get Staging Info
+                                const stagingResp = await fetch(`/api/service/${serviceId}-staging`);
+                                const stagingData = await stagingResp.json();
+
+                                if (stagingData.error) {
+                                    document.getElementById('stagingStatusLabel').innerText = 'NOT CREATED';
+                                    document.getElementById('stagingIp').innerText = 'N/A';
+                                    document.getElementById('promoteBtn').disabled = true;
+                                    document.getElementById('promoteBtn').classList.add('opacity-50', 'cursor-not-allowed');
+                                } else {
+                                    document.getElementById('stagingStatusLabel').innerText = 'ACTIVE';
+                                    const stagingIps = (stagingData.ipv4Addresses || []).join(', ');
+                                    document.getElementById('stagingIp').innerText = stagingIps || 'Provisioning...';
+                                    document.getElementById('promoteBtn').disabled = false;
+                                    document.getElementById('promoteBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+                                }
+
+                                // 3. Load Versions from GCS
+                                loadVersions(serviceId);
+
+                                lucide.createIcons();
+                            } catch (err) {
+                                console.error('Failed to load staging info:', err);
+                                document.getElementById('stagingStatusLabel').innerText = 'ERROR';
+                            }
+                        }
+
+                        async function loadVersions(serviceId) {
+                            const container = document.getElementById('versionList');
+                            container.innerHTML = '<div class="text-center py-4 text-[var(--viv-text-dim)] animate-pulse"><p class="text-xs uppercase font-bold tracking-widest">Loading Versions...</p></div>';
+
+                            try {
+                                const resp = await fetch(`/api/staging/versions?service=${serviceId}`);
+                                const data = await resp.json();
+
+                                if (!resp.ok || !data.versions || data.versions.length === 0) {
+                                    container.innerHTML = '<div class="text-center py-8 text-[var(--viv-text-dim)]"><p class="text-[10px] font-bold uppercase tracking-widest">No GCS history found</p></div>';
+                                    return;
+                                }
+
+                                container.innerHTML = '';
+                                data.versions.forEach((v, index) => {
+                                    const date = new Date(v.updated).toLocaleString();
+                                    const isNewest = index === 0;
+
+                                    const div = document.createElement('div');
+                                    div.className = `p-4 rounded border border-[var(--viv-border)] flex flex-col gap-2 cursor-pointer transition-all hover:border-[var(--viv-blue)] hover:bg-[var(--viv-bg)] ${selectedGeneration == v.generation ? 'border-[var(--viv-orange)] bg-[var(--viv-accent-subtle)]' : 'bg-[var(--viv-subtle)]'}`;
+                                    div.onclick = () => selectVersion(v.generation, v.description);
+
+                                    div.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-bold text-[var(--viv-blue)]">GEN: ${v.generation}</span>
+                            <span class="text-[9px] text-[var(--viv-text-dim)]">${date}</span>
+                        </div>
+                        <p class="text-[11px] font-bold text-[var(--viv-text)]">${v.description}</p>
+                        ${isNewest ? '<div class="self-start mt-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[8px] font-bold uppercase">Latest</div>' : ''}
+                    `;
+                                    container.appendChild(div);
+                                });
+                            } catch (err) {
+                                container.innerHTML = '<p class="text-center text-red-500 text-[10px]">Failed to load versions</p>';
+                            }
+                        }
+
+                        function selectVersion(gen, desc) {
+                            selectedGeneration = gen;
+                            document.getElementById('stagingVersionNotes').value = desc;
+                            // Reflow highlight
+                            const serviceId = document.getElementById('serviceList').value;
+                            loadVersions(serviceId);
+                            showNotification(`Selected version ${gen} for promotion`);
+                        }
+
+                        async function createStaging() {
+                            const serviceId = document.getElementById('serviceList').value;
+                            if (!serviceId) return;
+
+                            const notes = document.getElementById('stagingVersionNotes').value;
+                            const region = document.getElementById('stagingBucketRegion').value;
+
+                            if (!confirm(`Are you sure you want to create/update the staging environment for "${serviceId}"?\n\nThis will clone the production setup and sync it to GCS bucket as a new version.`)) return;
+
+                            try {
+                                const resp = await fetch('/api/staging/create', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        service_id: serviceId,
+                                        description: notes,
+                                        region: region
+                                    })
+                                });
+                                const data = await resp.json();
+                                if (data.job_id) {
+                                    showProgress(data.job_id);
+                                } else {
+                                    throw new Error(data.error || 'Failed to start task');
+                                }
+                            } catch (err) {
+                                showNotification(err.message, true);
+                            }
+                        }
+
+                        async function promoteToProd() {
+                            const serviceId = document.getElementById('serviceList').value;
+                            if (!serviceId) return;
+
+                            const msg = selectedGeneration
+                                ? `PROMOTE CRITICAL: Are you sure you want to promote GCS version ${selectedGeneration} to PRODUCTION for "${serviceId}"?`
+                                : `PROMOTE CRITICAL: Are you sure you want to promote the CURRENT STAGING config to PRODUCTION for "${serviceId}"?`;
+
+                            if (!confirm(msg)) return;
+
+                            try {
+                                const resp = await fetch('/api/staging/promote', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        service_id: serviceId,
+                                        generation: selectedGeneration
+                                    })
+                                });
+                                const data = await resp.json();
+                                if (data.job_id) {
+                                    showProgress(data.job_id);
+                                    selectedGeneration = null; // Reset after promotion
+                                } else {
+                                    throw new Error(data.error || 'Failed to start task');
+                                }
+                            } catch (err) {
+                                showNotification(err.message, true);
+                            }
+                        }
+
 
         async function loadCertificates() {
             try {
@@ -1260,11 +1542,15 @@
                 const resp = await fetch('/api/services');
                 const data = await resp.json();
                 const list = document.getElementById('serviceList');
-                list.innerHTML = '<option value="">Clone existing service...</option>';
+                list.innerHTML = '<option value="">Clone/Manage existing service...</option>';
+                list.onchange = () => cloneService(list.value);
 
                 if (data.edgeCacheServices) {
-                    data.edgeCacheServices.forEach(svc => {
-                        const name = svc.name.split('/').pop();
+                    data.edgeCacheServices.forEach(service => {
+                        const name = service.name.split('/').pop();
+                        // DONT show staging services in the clone list to avoid infinite staging
+                        if (name.endsWith('-staging')) return;
+
                         const option = document.createElement('option');
                         option.value = name;
                         option.innerText = name;
@@ -1272,19 +1558,26 @@
                     });
                 }
             } catch (err) {
-                console.error('Error loading services:', err);
+                console.error('Failed to load services:', err);
             }
         }
 
-        async function cloneService(serviceName) {
-            if (!serviceName) return;
+            async function cloneService(id) {
+                if (!id) {
+                    document.getElementById('stagingSection').classList.add('hidden');
+                    return;
+                }
+
+                // Show staging info for the selected service
+                loadStagingInfo();
+
             try {
-                const resp = await fetch(`/api/service/${serviceName}`);
+                const resp = await fetch(`/api/service/${id}`);
                 const data = await resp.json();
                 currentRowData = JSON.parse(JSON.stringify(data)); // Deep copy
 
                 // Populate form
-                document.getElementById('setupName').value = `${serviceName}-clone`;
+                document.getElementById('setupName').value = `${id}-clone`;
 
                 // 1. Domain / HostRules
                 if (data.routing && data.routing.hostRules && data.routing.hostRules[0]) {

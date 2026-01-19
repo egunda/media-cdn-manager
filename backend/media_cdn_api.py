@@ -125,3 +125,58 @@ def grant_bucket_iam(bucket_name, service_accounts, roles, token):
     
     # Set the updated policy
     return make_gcp_request(url, method="PUT", data=policy, token=token)
+
+def create_gcs_bucket(bucket_name, project_id, location, token):
+    """Creates a GCS bucket with versioning enabled."""
+    url = f"https://storage.googleapis.com/storage/v1/b?project={project_id}"
+    body = {
+        "name": bucket_name,
+        "location": location,
+        "versioning": {"enabled": True}
+    }
+    try:
+        return make_gcp_request(url, method="POST", data=body, token=token)
+    except Exception as e:
+        if "already exists" in str(e).lower():
+            # If already exists, ensure versioning is enabled
+            url_patch = f"https://storage.googleapis.com/storage/v1/b/{bucket_name}"
+            patch_body = {"versioning": {"enabled": True}}
+            return make_gcp_request(url_patch, method="PATCH", data=patch_body, token=token)
+        raise e
+
+def upload_gcs_object(bucket_name, object_name, data, token, content_type="application/json"):
+    """Uploads an object to GCS."""
+    # Simple upload (not resumable for small configs)
+    url = f"https://storage.googleapis.com/upload/storage/v1/b/{bucket_name}/o?uploadType=media&name={object_name}"
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": content_type
+    }
+    
+    if isinstance(data, dict):
+        encoded_data = json.dumps(data, indent=2).encode()
+    else:
+        encoded_data = data.encode() if isinstance(data, str) else data
+
+    req = urllib.request.Request(url, data=encoded_data, headers=headers, method="POST")
+    
+    with urllib.request.urlopen(req) as f:
+        return json.loads(f.read().decode())
+
+def list_gcs_object_versions(bucket_name, object_name, token):
+    """Lists all versions (generations) of an object."""
+    url = f"https://storage.googleapis.com/storage/v1/b/{bucket_name}/o?versions=true&prefix={object_name}"
+    resp = make_gcp_request(url, token=token)
+    items = resp.get("items", [])
+    # Filter exactly for the object name because prefix might match multiple
+    versions = [item for item in items if item["name"] == object_name]
+    return versions
+
+def get_gcs_object_content(bucket_name, object_name, generation, token):
+    """Gets the content of a specific version of an object."""
+    url = f"https://storage.googleapis.com/storage/v1/b/{bucket_name}/o/{object_name}?alt=media&generation={generation}"
+    headers = {"Authorization": f"Bearer {token}"}
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req) as f:
+        return f.read().decode()
