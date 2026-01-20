@@ -187,15 +187,17 @@
         .status-badge.error { background: #fee2e2; color: #991b1b; }
         .status-badge.scanning { background: #dbeafe; color: #1e40af; }
     </style>
+
 </head>
 
 <body class="flex min-h-screen font-inter overflow-x-hidden">
     <!-- Sidebar -->
     <aside class="w-72 viv-sidebar flex flex-col fixed h-full z-50 transition-all duration-300 transform border-r"
         id="sidebar">
+        
         <div class="h-14 viv-header flex items-center px-4 gap-3">
             <div class="w-8 h-8 bg-[#ff9900] rounded flex items-center justify-center">
-                <i data-lucide="play-circle" class="w-5 h-5 text-[var(--viv-squid-ink)]"></i>
+                <i data-lucide="play-circle" class="w-5 h-5 text-white"></i>
             </div>
             <div class="flex items-center gap-2">
                 <span class="font-bold text-sm tracking-tight text-white">MediaCDN Console</span>
@@ -203,16 +205,32 @@
             </div>
         </div>
 
+
         <nav class="flex-1 py-4 space-y-1">
+
             <p class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest px-6 mb-2 mt-4">
+
                 Services</p>
 
             <button id="mediaCdnTab"
+                onclick="showView('deployment')"
                 class="w-full flex items-center gap-3 px-6 py-2 content-center transition-all nav-item active">
                 <i data-lucide="cloud-lightning" class="w-4 h-4"></i>
                 <span class="text-sm font-semibold">Media CDN</span>
             </button>
-            <button id="wafTab"
+            <div class="pl-12 space-y-1">
+                <button id="stagingTab" onclick="showView('staging')"
+                    class="w-full flex items-center gap-2 py-1.5 transition-all text-[var(--viv-text-dim)] hover:text-[var(--viv-blue)] nav-sub-item">
+                    <i data-lucide="layers" class="w-3 h-3"></i>
+                    <span class="text-[11px] font-medium">Staging and versioning</span>
+                </button>
+                <button id="cleanupTab" onclick="showView('cleanup')"
+                    class="w-full flex items-center gap-2 py-1.5 transition-all text-[var(--viv-text-dim)] hover:text-[var(--viv-blue)] nav-sub-item">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    <span class="text-[11px] font-medium">CDN Clean up</span>
+                </button>
+            </div>
+            <button id="wafTab" onclick="showView('waf')"
                 class="w-full flex items-center gap-3 px-6 py-2 content-center transition-all nav-item hover:bg-[var(--viv-bg)]">
                 <i data-lucide="shield-check" class="w-4 h-4"></i>
                 <span class="text-sm font-semibold">WAF Security</span>
@@ -238,7 +256,7 @@
 
     <!-- Main Content Area -->
     <main class="flex-1 ml-72 min-h-screen relative">
-        <div
+                <div
             class="w-full h-14 viv-header border-b border-[var(--viv-border)] flex items-center justify-between px-8 sticky top-0 z-40">
             <div class="flex items-center gap-3 text-sm text-slate-300">
                 <span class="text-[#ff9900] font-bold">Google Cloud</span>
@@ -255,7 +273,7 @@
                 <div class="h-4 w-px bg-slate-700"></div>
                 <div class="flex items-center gap-2 text-[11px]">
                     <span class="text-slate-500 font-bold uppercase tracking-wider">Project:</span>
-                    <span id="headerProjectId" class="text-blue-400 font-mono">cdn-golden-demos</span>
+                    <span id="headerProjectId" class="text-blue-400 font-mono">your-project-id</span>
                 </div>
                 <div class="h-4 w-px bg-slate-700"></div>
                 <div class="text-[11px] text-[var(--viv-text-dim)]">
@@ -271,8 +289,8 @@
             <!-- Media CDN Section -->
             <section id="mediaCdnSection">
                 <div class="mb-8">
-                    <h1 class="text-2xl font-bold text-[var(--viv-text)] mb-1">Media CDN Management</h1>
-                    <p class="text-[var(--viv-text-dim)] text-sm">Configure, deploy and monitor your content delivery
+                    <h1 class="text-2xl font-bold text-[var(--viv-text)] mb-1" id="sectionTitle">Media CDN Management</h1>
+                    <p class="text-[var(--viv-text-dim)] text-sm" id="sectionDesc">Configure, deploy and monitor your content delivery
                         network across
                         GCP locations.</p>
                 </div>
@@ -289,7 +307,7 @@
                             <p class="text-[10px] text-[var(--viv-text-dim)] uppercase font-bold tracking-wider mb-0.5">
                                 Active Project</p>
                             <p id="activeProjectId" class="font-mono text-sm text-[var(--viv-blue)] font-bold">
-                                cdn-golden-demos</p>
+                                your-project-id</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -302,6 +320,8 @@
                         </div>
                     </div>
                 </div>
+
+                <div id="view-deployment" class="space-y-8">
 
                 <!-- Origin Management Section -->
                 <div class="mb-8 viv-card">
@@ -570,124 +590,159 @@
                                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                                     </button>
                                 </div>
-                            </form>
+                        </form>
+                        </div>
+                        </div>
+            </div>
+            
+            </div> <!-- Closing view-deployment implicitly -->
+            <div id="view-staging" class="hidden space-y-8">
+                <!-- Staging Management Panel -->
+                <div id="stagingSection" class="viv-card staging-card mb-8 animate-in slide-in-from-top-4 duration-500">
+                    <div class="viv-card-header flex justify-between items-center border-b-2 border-[var(--viv-blue)]/20">
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="layers" class="w-4 h-4 text-[var(--viv-blue)]"></i>
+                                <span class="text-[var(--viv-blue)]">Staging Environment Control</span>
                             </div>
-                            </div>
-                        <!-- Staging Management Panel -->
-                        <div id="stagingSection" class="viv-card staging-card mb-8 animate-in slide-in-from-top-4 duration-500">
-                            <div class="viv-card-header flex justify-between items-center border-b-2 border-[var(--viv-blue)]/20">
-                                <div class="flex items-center gap-4">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="layers" class="w-4 h-4 text-[var(--viv-blue)]"></i>
-                                        <span class="text-[var(--viv-blue)]">Staging Environment Control</span>
+                            <div class="h-4 w-px bg-[var(--viv-blue)]/20"></div>
+                            <div class="relative">
+                                <select id="manageServiceList" onchange="loadStagingInfo(this.value)"
+                                    class="w-48 bg-transparent text-[var(--viv-blue)] border-none font-bold text-xs appearance-none pr-6 focus:ring-0">
+                                    <option value="" class="bg-[var(--viv-card-bg)] text-[var(--viv-text)]">Select service to manage...
+                                    </option>
+                                    </select>
+                                    <div class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <i data-lucide="chevron-down" class="w-3 h-3"></i>
                                     </div>
-                                    <div class="h-4 w-px bg-[var(--viv-blue)]/20"></div>
-                                    <div class="relative">
-                                        <select id="manageServiceList" onchange="loadStagingInfo(this.value)"
-                                            class="w-48 bg-transparent text-[var(--viv-blue)] border-none font-bold text-xs appearance-none pr-6 focus:ring-0">
-                                            <option value="" class="bg-[var(--viv-card-bg)] text-[var(--viv-text)]">Select service to manage...</option>
-                                        </select>
-                                        <div class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                    </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span id="stagingStatusLabel" class="status-badge bg-blue-100 text-[var(--viv-blue)]">NOT SELECTED</span>
+                                        <div class="h-4 w-px bg-[var(--viv-border)]"></div>
+                                        <button onclick="loadStagingInfo(document.getElementById('manageServiceList').value)" class="viv-btn-secondary p-1.5"
+                                            title="Refresh Staging">
+                                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                                        </button>
                                         </div>
-                                    </div>
-                                    </div>
-                                <div class="flex items-center gap-3">
-                                    <span id="stagingStatusLabel" class="status-badge bg-blue-100 text-[var(--viv-blue)]">NOT SELECTED</span>
-                                    <div class="h-4 w-px bg-[var(--viv-border)]"></div>
-                                    <button onclick="loadStagingInfo(document.getElementById('manageServiceList').value)" class="viv-btn-secondary p-1.5"
-                                        title="Refresh Staging">
-                                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-                                    </button>
-                                </div>
                             </div>
-                        
+                            
                             <div class="p-8">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                                     <!-- Left Side: Staging Controls -->
                                     <div class="space-y-6">
                                         <div>
-                                            <h3 class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider mb-4">Environment
-                                                Status</h3>
-                                            <div class="space-y-4">
-                                                <div
-                                                    class="flex items-center justify-between p-3 bg-[var(--viv-bg)] rounded border border-[var(--viv-border)]">
-                                                    <div>
-                                                        <p class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Production IP</p>
-                                                        <p id="prodIp" class="text-sm font-mono font-bold text-[var(--viv-text)]">Detecting...
-                                                        </p>
-                                                    </div>
-                                                    <div class="text-right">
-                                                        <p class="text-[10px] text-green-600 font-bold uppercase">Public</p>
-                                                    </div>
+                                    <h3 class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider mb-4">Environment Status</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between p-3 bg-[var(--viv-bg)] rounded border border-[var(--viv-border)]">
+                                            <div>
+                                                <p class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Production IP</p>
+                                                <p id="prodIp" class="text-sm font-mono font-bold text-[var(--viv-text)]">Detecting...</p>
                                                 </div>
-                                                <div id="stagingIpContainer"
-                                                    class="flex items-center justify-between p-3 bg-[var(--viv-bg)] rounded border border-[var(--viv-border)]">
-                                                    <div>
-                                                        <p class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Staging IP</p>
-                                                        <p id="stagingIp" class="text-sm font-mono font-bold text-[var(--viv-blue)]">
-                                                            Not Available</p>
-                                                    </div>
-                                                    <div class="text-right">
-                                                        <p class="text-[10px] text-[var(--viv-blue)] font-bold uppercase">Sandbox</p>
-                                                    </div>
+                                                <div class="text-right">
+                                                    <p class="text-[10px] text-green-600 font-bold uppercase">Public</p>
                                                 </div>
+                                                </div>
+                                        <div id="stagingIpContainer"
+                                            class="flex items-center justify-between p-3 bg-[var(--viv-bg)] rounded border border-[var(--viv-border)]">
+                                            <div>
+                                                <p class="text-[10px] text-[var(--viv-text-dim)] font-bold uppercase">Staging IP</p>
+                                                <p id="stagingIp" class="text-sm font-mono font-bold text-[var(--viv-blue)]">Not Available</p>
+                                                </div>
+                                                <div class="text-right">
+                                                    <p class="text-[10px] text-[var(--viv-blue)] font-bold uppercase">Sandbox</p>
+                                                </div>
+                                                </div>
+                                                </div>
+                                                </div>
+                                                
+                                                <div class="space-y-4 pt-4">
+                                                    <div class="flex flex-col gap-2">
+                                        <label class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">Version Notes / Description</label>
+                                        <input type="text" id="stagingVersionNotes" placeholder="e.g., Update TTL for VOD chunks..."
+                                            class="w-full viv-input px-3 py-2 text-sm focus:ring-0">
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                        <label class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">GCS Storage Region</label>
+                                        <select id="stagingBucketRegion" class="w-full viv-input px-3 py-2 text-sm">
+                                            <option value="asia-south1">Mumbai (asia-south1)</option>
+                                            <option value="us-central1">US Central (Iowa)</option>
+                                            <option value="europe-west1">Belgium</option>
+                                            <option value="asia-east1">Taiwan</option>
+                                        </select>
+                                        </div>
+                                        <div class="flex gap-4 pt-2">
+                                        <button onclick="createStaging()" class="viv-btn-primary flex-1 py-3 text-xs flex items-center justify-center gap-2">
+                                            <i data-lucide="copy" class="w-4 h-4"></i> Modify & Sync Staging
+                                        </button>
+                                        <button onclick="promoteToProd()" id="promoteBtn" disabled
+                                            class="viv-btn-secondary flex-1 py-3 text-xs flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
+                                            <i data-lucide="rocket" class="w-4 h-4"></i> Promote to Production
+                                            </button>
                                             </div>
                                         </div>
-                        
-                                        <div class="space-y-4 pt-4">
-                                            <div class="flex flex-col gap-2">
-                                                <label class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">Version Notes /
-                                                    Description</label>
-                                                <input type="text" id="stagingVersionNotes"
-                                                    placeholder="e.g., Update TTL for VOD chunks, Added Dual Token..."
-                                                    class="w-full viv-input px-3 py-2 text-sm focus:ring-0">
-                                            </div>
-                                            <div class="flex flex-col gap-2">
-                                                <label class="text-[10px] font-bold text-[var(--viv-text-dim)] uppercase">GCS Storage
-                                                    Region</label>
-                                                <select id="stagingBucketRegion" class="w-full viv-input px-3 py-2 text-sm">
-                                                    <option value="asia-south1">Mumbai (asia-south1)</option>
-                                                    <option value="us-central1">US Central (Iowa)</option>
-                                                    <option value="europe-west1">Belgium</option>
-                                                    <option value="asia-east1">Taiwan</option>
-                                                </select>
-                                            </div>
-                                            <div class="flex gap-4 pt-2">
-                                                <button onclick="createStaging()"
-                                                    class="viv-btn-primary flex-1 py-3 text-xs flex items-center justify-center gap-2">
-                                                    <i data-lucide="copy" class="w-4 h-4"></i>
-                                                    Modify & Sync Staging
-                                                </button>
-                                                <button onclick="promoteToProd()" id="promoteBtn" disabled
-                                                    class="viv-btn-secondary flex-1 py-3 text-xs flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
-                                                    <i data-lucide="rocket" class="w-4 h-4"></i>
-                                                    Promote to Production
-                                                </button>
-                                            </div>
                                         </div>
+                                        
+                                        <!-- Right Side: Version History (GCS) -->
+                                        <div class="border-l border-[var(--viv-border)] pl-12">
+                                            <h3
+                                                class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider mb-4 flex justify-between items-center">
+                                                Version History (GCS Sync)
+                                                <span class="text-[10px] font-normal lowercase italic">Stored with versioning enabled</span>
+                                            </h3>
+                                            <div id="versionList" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div class="text-center py-8 text-[var(--viv-text-dim)] animate-pulse">
+                                        <p class="text-xs font-bold uppercase tracking-widest">Scanning GCS...</p>
                                     </div>
-                        
-                                    <!-- Right Side: Version History (GCS) -->
-                                    <div class="border-l border-[var(--viv-border)] pl-12">
-                                        <h3
-                                            class="text-xs font-bold text-[var(--viv-text-dim)] uppercase tracking-wider mb-4 flex justify-between items-center">
-                                            Version History (GCS Sync)
-                                            <span class="text-[10px] font-normal lowercase italic">Stored with versioning enabled</span>
-                                        </h3>
-                                        <div id="versionList" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                            <!-- Versions go here -->
-                                            <div class="text-center py-8 text-[var(--viv-text-dim)] animate-pulse">
-                                                <p class="text-xs font-bold uppercase tracking-widest">Scanning GCS...</p>
-                                            </div>
-                                        </div>
                                     </div>
+                                    </div>
+                                    </div>
+                                    </div>
+                </div>
+                </div>
+                
+                <div id="view-cleanup" class="hidden space-y-8">
+                    <!-- Resource Cleanup Section -->
+                    <div class="viv-card">
+                        <div class="viv-card-header flex items-center gap-2">
+                            <i data-lucide="trash-2" class="w-4 h-4 text-red-500/80"></i>
+                            <span>Configuration Cleanup Area</span>
+                            <span class="ml-2 text-[10px] text-red-500 font-bold border border-red-500/20 px-1 rounded">Danger
+                                Zone</span>
+                        </div>
+                
+                        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Services Cleanup -->
+                            <div class="bg-[var(--viv-header-bg)] rounded p-6 border border-[var(--viv-border)]">
+                                <h3
+                                    class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4 flex justify-between items-center">
+                                    Deployed Services
+                                    <button onclick="populateCleanupList('service')"
+                                        class="text-[#0073bb] hover:underline">Refresh</button>
+                                </h3>
+                                <div id="serviceCleanupList" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                    <div class="text-center text-slate-400 text-xs py-4 italic">Scanning for services...</div>
                                 </div>
                             </div>
+                
+                            <!-- Origins Cleanup -->
+                            <div class="bg-[var(--viv-header-bg)] rounded p-6 border border-[var(--viv-border)]">
+                                <h3
+                                    class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4 flex justify-between items-center">
+                                    Defined Origins
+                                    <button onclick="populateCleanupList('origin')"
+                                        class="text-[#0073bb] hover:underline">Refresh</button>
+                                </h3>
+                                <div id="originCleanupList" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                    <div class="text-center text-slate-400 text-xs py-4 italic">Scanning for origins...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </section>
 
-            <!-- WAF Security Section -->
             <section id="wafSection" class="hidden space-y-8">
                 <div class="mb-8">
                     <div class="flex items-center gap-2 mb-2">
@@ -831,45 +886,10 @@
                         </div>
                     </div>
                 </div>
-            </section>
 
-            <!-- Resource Cleanup Section -->
-            <div class="mt-8 viv-card">
-                <div class="viv-card-header flex items-center gap-2">
-                    <i data-lucide="trash-2" class="w-4 h-4 text-red-500/80"></i>
-                    <span>Configuration Cleanup Area</span>
-                    <span class="ml-2 text-[10px] text-red-500 font-bold border border-red-500/20 px-1 rounded">Danger
-                        Zone</span>
-                </div>
-
-                <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Services Cleanup -->
-                    <div class="bg-[var(--viv-header-bg)] rounded p-6 border border-[var(--viv-border)]">
-                        <h3
-                            class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4 flex justify-between items-center">
-                            Deployed Services
-                            <button onclick="populateCleanupList('service')"
-                                class="text-[#0073bb] hover:underline">Refresh</button>
-                        </h3>
-                        <div id="serviceCleanupList" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                            <div class="text-center text-slate-400 text-xs py-4 italic">Scanning for services...</div>
-                        </div>
-                    </div>
-
-                    <!-- Origins Cleanup -->
-                    <div class="bg-[var(--viv-header-bg)] rounded p-6 border border-[var(--viv-border)]">
-                        <h3
-                            class="text-[11px] font-bold text-[var(--viv-text-dim)] uppercase tracking-widest mb-4 flex justify-between items-center">
-                            Defined Origins
-                            <button onclick="populateCleanupList('origin')"
-                                class="text-[#0073bb] hover:underline">Refresh</button>
-                        </h3>
-                        <div id="originCleanupList" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                            <div class="text-center text-slate-400 text-xs py-4 italic">Scanning for origins...</div>
-                        </div>
-                    </div>
-                </div>
             </div>
+            </div>
+            </section>
         </div>
     </main>
 
@@ -884,9 +904,7 @@
             50% {
                 transform: scaleY(1.3);
             }
-        }
-    </style>
-
+        }/* Sidebar Adjustments *//* --- HIGH FIDELITY GOOGLE THEME --- *//* Essential Visibility Logic */</style>
 
     <!-- Notification -->
     <div id="notification"
@@ -1214,7 +1232,6 @@
 
         // Resource management simplified - only select existing
 
-
         async function loadKeysets() {
             try {
                 const resp = await fetch('/api/keysets');
@@ -1253,6 +1270,7 @@
                         // --- Staging logic ---
                         let selectedServiceForStaging = null;
                         let selectedGeneration = null;
+                                                            let selectedVersionInfo = null;
 
                                 async function loadStagingInfo(id) {
                                     const serviceId = id || document.getElementById('manageServiceList').value;
@@ -1332,18 +1350,22 @@
                                 data.versions.forEach((v, index) => {
                                     const date = new Date(v.updated).toLocaleString();
                                     const isNewest = index === 0;
+                                    const versionNum = data.versions.length - index;
 
                                     const div = document.createElement('div');
                                     div.className = `p-4 rounded border border-[var(--viv-border)] flex flex-col gap-2 cursor-pointer transition-all hover:border-[var(--viv-blue)] hover:bg-[var(--viv-bg)] ${selectedGeneration == v.generation ? 'border-[var(--viv-orange)] bg-[var(--viv-accent-subtle)]' : 'bg-[var(--viv-subtle)]'}`;
-                                    div.onclick = () => selectVersion(v.generation, v.description);
+                                    div.onclick = () => selectVersion(v.generation, v.description, versionNum);
 
                                     div.innerHTML = `
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-bold text-[var(--viv-blue)]">GEN: ${v.generation}</span>
+                            <span class="text-[10px] font-bold text-[var(--viv-blue)] uppercase tracking-wider">Version ${versionNum}</span>
                             <span class="text-[9px] text-[var(--viv-text-dim)]">${date}</span>
                         </div>
                         <p class="text-[11px] font-bold text-[var(--viv-text)]">${v.description}</p>
-                        ${isNewest ? '<div class="self-start mt-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[8px] font-bold uppercase">Latest</div>' : ''}
+                        <div class="flex gap-2">
+                            <span class="text-[8px] text-[var(--viv-text-dim)] opacity-50">GEN: ${v.generation}</span>
+                            ${isNewest ? '<span class="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[8px] font-bold uppercase">Latest</span>' : ''}
+                        </div>
                     `;
                                     container.appendChild(div);
                                 });
@@ -1352,13 +1374,14 @@
                             }
                         }
 
-                        function selectVersion(gen, desc) {
+                                                            function selectVersion(gen, desc, num) {
                             selectedGeneration = gen;
+                                                            selectedVersionInfo = { num, desc };
                             document.getElementById('stagingVersionNotes').value = desc;
                             // Reflow highlight
                             const serviceId = document.getElementById('manageServiceList').value;
                             loadVersions(serviceId);
-                            showNotification(`Selected version ${gen} for promotion`);
+                                                            showNotification(`Selected Version ${num} for promotion`);
                         }
 
                         async function createStaging() {
@@ -1400,7 +1423,7 @@
                             if (!serviceId) return;
 
                             const msg = selectedGeneration
-                                ? `PROMOTE CRITICAL: Are you sure you want to promote GCS version ${selectedGeneration} to PRODUCTION for "${serviceId}"?`
+                                ? `PROMOTE CRITICAL: Are you sure you want to promote Version ${selectedVersionInfo.num}: "${selectedVersionInfo.desc}" to PRODUCTION for "${serviceId}"?`
                                 : `PROMOTE CRITICAL: Are you sure you want to promote the CURRENT STAGING config to PRODUCTION for "${serviceId}"?`;
 
                             if (!confirm(msg)) return;
@@ -1429,7 +1452,6 @@
                                 showNotification(err.message, true);
                             }
                         }
-
 
         async function loadCertificates() {
             try {
@@ -1546,7 +1568,6 @@
             if (!name) return;
             document.getElementById('originName').value = name;
         }
-
 
         async function pollOriginStatus(jobId, originName) {
             const doPoll = async () => {
@@ -1705,7 +1726,6 @@
                 showNotification('Error cloning service', true);
             }
         }
-
 
         document.getElementById('deployForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1986,7 +2006,6 @@ EOF
 # 4. Import the Service Configuration
 gcloud edge-cache services import ${config.name} --source=service.yaml`;
         }
-
 
         function downloadYAML() {
             const config = {
@@ -2595,6 +2614,81 @@ gcloud edge-cache services import ${config.name} --source=service.yaml`;
                 toast.classList.remove('opacity-100', 'translate-y-0');
             }, 3000);
         }
+
+    // View Navigation
+
+    // View Navigation
+    function showView(viewId) {
+        const views = ['deployment', 'staging', 'cleanup'];
+
+        // Handle Top Level Section Toggling
+        const mediaCdnSection = document.getElementById('mediaCdnSection');
+        const wafSection = document.getElementById('wafSection');
+
+        if (viewId === 'waf') {
+            if (mediaCdnSection) mediaCdnSection.classList.add('hidden');
+            if (wafSection) wafSection.classList.remove('hidden');
+
+            // Update sidebar
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('wafTab').classList.add('active');
+            document.querySelectorAll('.nav-sub-item').forEach(i => {
+                i.classList.remove('text-[var(--viv-blue)]', 'font-bold');
+                i.classList.add('text-[var(--viv-text-dim)]');
+            });
+
+            lucide.createIcons();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        // For Media CDN sub-views
+        if (mediaCdnSection) mediaCdnSection.classList.remove('hidden');
+        if (wafSection) wafSection.classList.add('hidden');
+
+        views.forEach(v => {
+            const el = document.getElementById(`view-${v}`);
+            if (el) el.classList.add('hidden');
+        });
+
+        const activeView = document.getElementById(`view-${viewId}`);
+        if (activeView) activeView.classList.remove('hidden');
+
+        // Update sidebar
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.nav-sub-item').forEach(i => {
+            i.classList.remove('text-[var(--viv-blue)]', 'font-bold');
+            i.classList.add('text-[var(--viv-text-dim)]');
+        });
+
+        if (viewId === 'deployment') {
+            document.getElementById('mediaCdnTab').classList.add('active');
+        } else {
+            const subTab = document.getElementById(`${viewId}Tab`);
+            if (subTab) {
+                subTab.classList.remove('text-[var(--viv-text-dim)]');
+                subTab.classList.add('text-[var(--viv-blue)]', 'font-bold');
+            }
+            // Keep parent active
+            document.getElementById('mediaCdnTab').classList.add('active');
+        }
+
+        // Update titles
+        const titles = {
+            'deployment': ['Media CDN Management', 'Configure, deploy and monitor your content delivery network.'],
+            'staging': ['Staging & Versioning', 'Manage your sandbox environment and promotion history.'],
+            'cleanup': ['CDN Configuration Cleanup', 'Prune unused services and origins from your project.']
+        };
+
+        const titleEl = document.getElementById('sectionTitle');
+        const descEl = document.getElementById('sectionDesc');
+        if (titleEl && titles[viewId]) titleEl.innerText = titles[viewId][0];
+        if (descEl && titles[viewId]) descEl.innerText = titles[viewId][1];
+
+        lucide.createIcons();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     </script>
     <!-- Login Overlay -->
     <div id="loginOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">

@@ -3,14 +3,8 @@ credentials/
 key.json
 *.json
 !package.json
-!dual-token-vod.json
-!dual-token-vod-clone.json
 
-# If you want to keep the specific dual-token files as examples, we can uncomment them.
-# But generally, it's safer to ignore JSON files if they might contain project IDs.
-# Let's be explicit.
-credentials/
-key.json
+# Project specific info
 project_info.txt
 
 # Python

@@ -3,16 +3,18 @@ import os
 import sys
 
 # Add backend to path for imports
-sys.path.append('/Users/vivekanurag/.gemini/jetski/scratch/media-cdn-deployer/backend')
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(backend_dir)
 from media_cdn_api import get_access_token, make_gcp_request
 
 def verify():
-    creds_path = '/Users/vivekanurag/.gemini/jetski/scratch/media-cdn-deployer/credentials/key.json'
+    root_dir = os.path.dirname(backend_dir)
+    creds_path = os.path.join(root_dir, 'credentials', 'key.json')
     with open(creds_path, 'r') as f:
         key_data = json.load(f)
     
     token = get_access_token(key_data)
-    op_name = "projects/cdn-golden-demos/locations/global/operations/operation-1767980238626-647f7fa17e034-4f9df53b-d29b2ce2"
+    op_name = "projects/your-project-id/locations/global/operations/your-operation-id"
     url = f"https://networkservices.googleapis.com/v1alpha1/{op_name}"
     
     print(f"Verifying API at: {url}")

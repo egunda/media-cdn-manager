@@ -450,9 +450,13 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(resp).encode())
             except Exception as e:
-                self.send_response(500)
+                status = 500
+                if "404" in str(e):
+                    status = 404
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif path.startswith('/api/origin/'):
             try:
                 origin_id = path.split('/')[-1]
@@ -924,6 +928,10 @@ def run_staging_task(job_id, payload):
         project_number = get_project_number(project_id, token)
         bucket_name = f"{project_number}-mediacdn-do-not-delete"
         
+        # 0. Ensure GCS bucket exists early so user sees it
+        jobs[job_id]["logs"].append(f"Ensuring GCS bucket {bucket_name} exists in {bucket_region}...")
+        create_gcs_bucket(bucket_name, project_id, bucket_region, token)
+        
         # 1. Fetch original service
         jobs[job_id]["logs"].append("Fetching original service configuration...")
         url_fetch = f"https://networkservices.googleapis.com/v1alpha1/projects/{project_id}/locations/global/edgeCacheServices/{service_id}"
@@ -971,9 +979,6 @@ def run_staging_task(job_id, payload):
             time.sleep(20)
 
         # 4. Sync YAML to GCS
-        jobs[job_id]["logs"].append(f"Ensuring GCS bucket {bucket_name} exists in {bucket_region}...")
-        create_gcs_bucket(bucket_name, project_id, bucket_region, token)
-        
         jobs[job_id]["logs"].append(f"Syncing configuration to GCS with versioning...")
         upload_gcs_object(bucket_name, f"{service_id}.json", staging_body, token)
         
