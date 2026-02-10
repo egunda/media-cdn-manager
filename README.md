@@ -100,14 +100,6 @@ The server runs on port `6001` by default. Access it via:
 
 ---
 
-## 🗺️ Roadmap
-- [ ] Multi-project support switcher.
-- [ ] Terraform provider export for generated services.
-- [ ] Real-time analytics dashboard integration.
-- [ ] advanced WAF custom rule builder.
-
----
-
 ## 📄 License
 Distributed under the MIT License. See `LICENSE` for more information.
 
