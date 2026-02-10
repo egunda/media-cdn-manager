@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Platform: Debian/Ubuntu](https://img.shields.io/badge/platform-Debian%2FUbuntu-orange.svg)](https://www.debian.org/)
-[![Style: VIV UI](https://img.shields.io/badge/UI-VIV%20Original-232f3e.svg)](https://github.com/egunda/media-cdn-manager)
 
 > **The ultimate command center for Google Cloud Media CDN.** Deploy, manage, and secure your globally distributed video streaming infrastructure with a professional, high-fidelity interface.
 
