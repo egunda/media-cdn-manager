@@ -4,7 +4,7 @@
   "description": "Professional deployment portal for Google Cloud Media CDN",
   "main": "index.html",
   "scripts": {
-    "start": "python3 -m http.server 8080"
+    "start": "python3 backend/main.py"
   },
   "keywords": [],
   "author": "",
