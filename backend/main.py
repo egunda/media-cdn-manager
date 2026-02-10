@@ -22,18 +22,6 @@ from media_cdn_api import (
 
 # In-memory job storage
 jobs = {}
-# In-memory session storage
-sessions = {}
-
-def get_session(headers):
-    cookie_header = headers.get('Cookie')
-    if not cookie_header:
-        return None
-    cookie = http.cookies.SimpleCookie(cookie_header)
-    if 'session_id' not in cookie:
-        return None
-    session_id = cookie['session_id'].value
-    return sessions.get(session_id)
 
 class RequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -41,15 +29,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         path = self.path.split('?')[0].rstrip('/')
         if path == '': path = '/'
 
-        # Check authentication for all API POSTs
-        if path.startswith('/api/'):
-            user = get_session(self.headers)
-            if not user:
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Unauthorized"}).encode())
-                return
 
         if path == '/api/deploy':
             content_length = int(self.headers['Content-Length'])
@@ -234,143 +213,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         if path == '': path = '/'
         
         # Public OAuth routes
-        if path == '/gauth/login':
-            try:
-                # Find project root relative to this file
-                backend_dir = os.path.dirname(os.path.abspath(__file__))
-                root_dir = os.path.dirname(backend_dir)
-                oauth_path = os.path.join(root_dir, 'credentials', 'oauth.json')
-                
-                with open(oauth_path, 'r') as f:
-                    config = json.load(f)['web']
-                
-                params = {
-                    "client_id": config['client_id'],
-                    "redirect_uri": config['redirect_uris'][0],
-                    "response_type": "code",
-                    "scope": "openid email profile",
-                    "access_type": "offline",
-                    "prompt": "select_account"
-                }
-                auth_url = f"{config['auth_uri']}?{urllib.parse.urlencode(params)}"
-                self.send_response(302)
-                self.send_header('Location', auth_url)
-                self.end_headers()
-                return
-            except Exception as e:
-                self.send_error(500, str(e))
-                return
-
-        if path == '/gauth/callback':
-            try:
-                query = parse_qs(urlparse(self.path).query)
-                code = query.get('code', [None])[0]
-                if not code:
-                    raise Exception("No code provided")
-                
-                backend_dir = os.path.dirname(os.path.abspath(__file__))
-                root_dir = os.path.dirname(backend_dir)
-                oauth_path = os.path.join(root_dir, 'credentials', 'oauth.json')
-                
-                with open(oauth_path, 'r') as f:
-                    config = json.load(f)['web']
-                
-                # Exchange code for token
-                token_data = urllib.parse.urlencode({
-                    "code": code,
-                    "client_id": config['client_id'],
-                    "client_secret": config['client_secret'],
-                    "redirect_uri": config['redirect_uris'][0],
-                    "grant_type": "authorization_code"
-                }).encode()
-                
-                req = urllib.request.Request(config['token_uri'], data=token_data, method='POST')
-                with urllib.request.urlopen(req) as r:
-                    tokens = json.loads(r.read().decode())
-                
-                # Get user info
-                user_req = urllib.request.Request(
-                    "https://www.googleapis.com/oauth2/v3/userinfo",
-                    headers={"Authorization": f"Bearer {tokens['access_token']}"}
-                )
-                with urllib.request.urlopen(user_req) as r:
-                    user_info = json.loads(r.read().decode())
-                
-                # Check Allowlist
-                # Defaults to allowing everyone if env var is not set, 
-                # BUT since you requested restriction, we will enforce it.
-                # You can set ALLOWED_USERS="email1@gmail.com,email2@gmail.com" in .env or environment
-                allowed_users_env = os.environ.get("ALLOWED_USERS", "")
-                allowed_users = [u.strip() for u in allowed_users_env.split(",") if u.strip()]
-                
-                if allowed_users and user_info.get("email") not in allowed_users:
-                    # Render styled 403 Forbidden page from file
-                    self.send_response(403)
-                    self.send_header('Content-Type', 'text/html')
-                    self.end_headers()
-                    
-                    try:
-                        backend_dir = os.path.dirname(os.path.abspath(__file__))
-                        root_dir = os.path.dirname(backend_dir)
-                        with open(os.path.join(root_dir, '403.html'), 'r') as f:
-                            forbidden_html = f.read()
-                        
-                        # Replace placeholder with actual email
-                        forbidden_html = forbidden_html.replace('{{EMAIL}}', user_info.get("email", "Unknown"))
-                        self.wfile.write(forbidden_html.encode())
-                    except Exception as e:
-                        self.wfile.write(f"Access Denied: {user_info.get('email')}".encode())
-                    return
-
-                # Create session
-                session_id = secrets.token_urlsafe(32)
-                sessions[session_id] = user_info
-                
-                # Set cookie and redirect
-                self.send_response(302)
-                cookie = http.cookies.SimpleCookie()
-                cookie['session_id'] = session_id
-                cookie['session_id']['path'] = '/'
-                cookie['session_id']['httponly'] = True
-                self.send_header('Set-Cookie', cookie.output(header=''))
-                self.send_header('Location', '/')
-                self.end_headers()
-                return
-            except Exception as e:
-                self.send_error(500, str(e))
-                return
-
-        if path == '/gauth/logout':
-            cookie_header = self.headers.get('Cookie')
-            if cookie_header:
-                cookie = http.cookies.SimpleCookie(cookie_header)
-                if 'session_id' in cookie:
-                    session_id = cookie['session_id'].value
-                    if session_id in sessions:
-                        del sessions[session_id]
-            
-            self.send_response(302)
-            self.send_header('Set-Cookie', 'session_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
-            self.send_header('Location', '/')
-            self.end_headers()
-            return
-
-        # Protected API Routes
-        if path.startswith('/api/'):
-            user = get_session(self.headers)
-            if not user:
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Unauthorized"}).encode())
-                return
-
-            if path == '/api/me':
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps(user).encode())
-                return
 
         if path == '/api/config':
             try:
@@ -1064,7 +906,7 @@ def run_promotion_task(job_id, payload):
         jobs[job_id]["logs"].append(f"Error: {str(e)}")
 
 
-def run_server(port=8080):
+def run_server(port=6001):
     server_address = ('', port)
     httpd = http.server.HTTPServer(server_address, RequestHandler)
     print(f"Starting server on port {port}...")

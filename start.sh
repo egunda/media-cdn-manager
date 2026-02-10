@@ -3,8 +3,8 @@
 cd "$(dirname "$0")"
 
 # Terminate existing backend process if running
-echo "Cleaning up existing processes on port 8080..."
-lsof -ti:8080 | xargs kill -9 2>/dev/null
+echo "Cleaning up existing processes on port 6001..."
+lsof -ti:6001 | xargs kill -9 2>/dev/null
 
 # Load environment variables if .env exists
 if [ -f .env ]; then
@@ -13,6 +13,6 @@ if [ -f .env ]; then
 fi
 
 # Start the native backend
-echo "Starting Media CDN Deployer Backend at http://localhost:8080..."
+echo "Starting Media CDN Deployer Backend at http://localhost:6001..."
 echo "Using native implementation (no external dependencies required)."
 python3 backend/main.py

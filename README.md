@@ -74,8 +74,8 @@ Place your service account JSON key in the credentials folder:
 ```
 
 ### 2. Accessing the Dashboard
-The server runs on port `8080` by default. Access it via:
-`http://your-server-ip:8080`
+The server runs on port `6001` by default. Access it via:
+`http://your-server-ip:6001`
 
 ---
 
