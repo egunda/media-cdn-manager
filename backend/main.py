@@ -600,28 +600,69 @@ def run_deployment_task(job_id, payload):
             for field in ["updateTime", "createTime", "etag", "ipv4Addresses", "ipv6Addresses", "name"]:
                 service_body.pop(field, None)
             
-            # Update Hosts (Domain)
+            # 1. Robust Domain Update
             if "routing" in service_body and "hostRules" in service_body["routing"]:
                 for hr in service_body["routing"]["hostRules"]:
                     hr["hosts"] = [payload['domain']]
             
-            # Update SSL Certificates
+            # 2. SSL Certificate 
             if payload.get('ssl_certificate'):
                 service_body["edgeSslCertificates"] = [payload['ssl_certificate']]
             else:
                 service_body.pop("edgeSslCertificates", None)
             
-            # Intelligent Origin Update: Only update origins that match the 'main' origin from UI selection 
-            # if we can detect one, or if they were explicitly changed.
-            # In simple high-fidelity clone, we'll keep all origins as is UNLESS we want to force the UI selection.
-            # For now, let's keep original origins to maintain high fidelity, but if the user wants to change it 
-            # we might need more logic. Let's force the UI-selected origin for the first rule at least.
+            # 3. Comprehensive Origin & Dual Token Sync
+            dual_token = payload.get('dual_token_config', {})
+            enable_dt = dual_token.get('enabled', False)
+            
             if "routing" in service_body and "pathMatchers" in service_body["routing"]:
                 for pm in service_body["routing"]["pathMatchers"]:
-                    for i, rule in enumerate(pm.get("routeRules", [])):
-                        # If this is the primary rule (priority 1) and we have a UI origin selected, use it.
-                        if i == 0 or rule.get("priority") == "1":
-                             rule["origin"] = origin_path
+                    for rule in pm.get("routeRules", []):
+                        # Force Origin Update for ALL rules in cloned setup
+                        rule["origin"] = origin_path
+                        
+                        # Sync Dual Token settings from UI to cloned rules
+                        if "routeAction" in rule and "cdnPolicy" in rule["routeAction"]:
+                            policy = rule["routeAction"]["cdnPolicy"]
+                            if enable_dt:
+                                # Apply the keysets from UI to the rules
+                                s_keyset = f"projects/{project_id}/locations/global/edgeCacheKeysets/{dual_token['short_keyset']}"
+                                l_keyset = f"projects/{project_id}/locations/global/edgeCacheKeysets/{dual_token['long_keyset']}"
+                                sig_algo = dual_token.get('signature_algorithm', 'HMAC_SHA_256')
+
+                                # Heuristic: If it looks like a manifest, it's a "Master"
+                                match_rules = rule.get("matchRules", [])
+                                is_master = any(mr.get("pathTemplateMatch", "").endswith(".m3u8") or mr.get("pathTemplateMatch", "").endswith(".mpd") for mr in match_rules)
+                                
+                                if is_master:
+                                    policy["signedRequestMode"] = "REQUIRE_TOKENS"
+                                    policy["signedRequestKeyset"] = s_keyset
+                                    policy["addSignatures"] = {
+                                        "actions": ["GENERATE_TOKEN_HLS_COOKIELESS"],
+                                        "keyset": l_keyset,
+                                        "tokenQueryParameter": "hdntl",
+                                        "tokenTtl": "86400s",
+                                        "copiedParameters": ["data", "Data", "Headers", "PathGlobs", "SessionID", "URLPrefix"]
+                                    }
+                                    policy["signedTokenOptions"] = {
+                                        "tokenQueryParameter": "hdnts",
+                                        "allowedSignatureAlgorithms": [sig_algo]
+                                    }
+                                else:
+                                    # Everything else gets child protection
+                                    use_short = dual_token.get('child_use_short_token', False)
+                                    ks = s_keyset if use_short else l_keyset
+                                    policy["signedRequestMode"] = "REQUIRE_TOKENS"
+                                    policy["signedRequestKeyset"] = ks
+                                    policy["addSignatures"] = {
+                                        "actions": ["PROPAGATE_TOKEN_HLS_COOKIELESS"],
+                                        "tokenQueryParameter": "hdntl"
+                                    }
+                            else:
+                                # Explicitly disable if unchecked in UI
+                                policy["signedRequestMode"] = "DISABLED"
+                                policy.pop("addSignatures", None)
+                                policy.pop("signedRequestKeyset", None)
         else:
             # Helper for Dual Token logic
             dual_token = payload.get('dual_token_config', {})
