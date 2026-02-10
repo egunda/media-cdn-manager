@@ -883,6 +883,7 @@
     <script>
         // Global State
         let loadedConfig = null;
+                let deployingOrigins = new Set();
         let currentRowData = null; // Store original JSON for high-fidelity cloning
         let currentType = 'VOD';
         let isDeploying = false;
@@ -1373,14 +1374,7 @@
             }
             }
 
-            if (document.readyState === 'loading') {
-                window.addEventListener('DOMContentLoaded', initApp);
-            } else {
-                initApp();
-            }
-
-        // --- Origin Management ---
-        let deployingOrigins = new Set();
+                // --- Origin Management ---
 
         async function loadOrigins() {
             try {
@@ -2531,6 +2525,13 @@ gcloud edge-cache services import ${config.name} --source=service.yaml`;
         lucide.createIcons();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+        // --- Start Application ---
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
 
 </script>
 

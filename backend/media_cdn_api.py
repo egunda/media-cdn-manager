@@ -7,6 +7,9 @@ import subprocess
 import tempfile
 import os
 
+# Project Number Cache
+_PROJECT_NUMBER_CACHE = {}
+
 def b64_encode(data):
     if isinstance(data, dict):
         data = json.dumps(data).encode()
@@ -57,7 +60,7 @@ def get_access_token(service_account_info):
         }).encode()
 
         req = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
-        with urllib.request.urlopen(req) as f_req:
+        with urllib.request.urlopen(req, timeout=10) as f_req:
             resp = json.loads(f_req.read().decode())
             return resp["access_token"]
     finally:
@@ -74,7 +77,7 @@ def make_gcp_request(url, method="GET", data=None, token=None):
     req = urllib.request.Request(url, data=encoded_data, headers=headers, method=method)
     
     try:
-        with urllib.request.urlopen(req) as f:
+        with urllib.request.urlopen(req, timeout=10) as f:
             return json.loads(f.read().decode())
     except urllib.error.HTTPError as e:
         error_msg = e.read().decode()
@@ -84,9 +87,15 @@ def make_gcp_request(url, method="GET", data=None, token=None):
         raise Exception(f"GCP API Error: {e.code} - {error_msg}")
 
 def get_project_number(project_id, token):
+    if project_id in _PROJECT_NUMBER_CACHE:
+        return _PROJECT_NUMBER_CACHE[project_id]
+        
     url = f"https://cloudresourcemanager.googleapis.com/v1/projects/{project_id}"
     resp = make_gcp_request(url, token=token)
-    return resp.get("projectNumber")
+    num = resp.get("projectNumber")
+    if num:
+        _PROJECT_NUMBER_CACHE[project_id] = num
+    return num
 
 def check_bucket_iam(bucket_name, service_accounts, roles, token):
     """Checks if any of the service accounts have any of the roles on a bucket."""
@@ -161,7 +170,7 @@ def upload_gcs_object(bucket_name, object_name, data, token, content_type="appli
 
     req = urllib.request.Request(url, data=encoded_data, headers=headers, method="POST")
     
-    with urllib.request.urlopen(req) as f:
+    with urllib.request.urlopen(req, timeout=10) as f:
         return json.loads(f.read().decode())
 
 def list_gcs_object_versions(bucket_name, object_name, token):
@@ -178,5 +187,5 @@ def get_gcs_object_content(bucket_name, object_name, generation, token):
     url = f"https://storage.googleapis.com/storage/v1/b/{bucket_name}/o/{object_name}?alt=media&generation={generation}"
     headers = {"Authorization": f"Bearer {token}"}
     req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req) as f:
+    with urllib.request.urlopen(req, timeout=10) as f:
         return f.read().decode()
