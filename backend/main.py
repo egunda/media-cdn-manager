@@ -23,6 +23,23 @@ from media_cdn_api import (
 # In-memory job storage
 jobs = {}
 
+def get_system_bucket(project_number):
+    """Resolves the system bucket name, favoring custom settings if available."""
+    try:
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(backend_dir)
+        settings_path = os.path.join(root_dir, 'credentials', 'settings.json')
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as f:
+                settings = json.load(f)
+                if settings.get('bucket_name'):
+                    return settings['bucket_name']
+    except Exception as e:
+        print(f"Error reading settings.json: {e}")
+    
+    # Default fallback
+    return f"{project_number}-mediacdn-do-not-delete"
+
 class RequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         # Normalize path: remove query params and trailing slash
@@ -466,7 +483,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 project_id = key_data['project_id']
                 token = get_access_token(key_data)
                 project_number = get_project_number(project_id, token)
-                bucket_name = f"{project_number}-mediacdn-do-not-delete"
+                bucket_name = get_system_bucket(project_number)
                 
                 versions = []
                 try:
@@ -768,7 +785,7 @@ def run_staging_task(job_id, payload):
         jobs[job_id]["logs"].append(f"Starting cloning process for {service_id}...")
         token = get_access_token(key_data)
         project_number = get_project_number(project_id, token)
-        bucket_name = f"{project_number}-mediacdn-do-not-delete"
+        bucket_name = get_system_bucket(project_number)
         
         # 0. Ensure GCS bucket exists early so user sees it
         jobs[job_id]["logs"].append(f"Ensuring GCS bucket {bucket_name} exists in {bucket_region}...")
@@ -865,7 +882,7 @@ def run_promotion_task(job_id, payload):
         if generation:
             jobs[job_id]["logs"].append(f"Promoting version {generation} to production...")
             project_number = get_project_number(project_id, token)
-            bucket_name = f"{project_number}-mediacdn-do-not-delete"
+            bucket_name = get_system_bucket(project_number)
             promote_config = json.loads(get_gcs_object_content(bucket_name, f"{service_id}.json", generation, token))
         else:
             jobs[job_id]["logs"].append(f"Promoting current staging config to production...")

@@ -1340,13 +1340,18 @@
         }
 
         // Auto-load config on startup
-        window.addEventListener('DOMContentLoaded', async () => {
+            async function initApp() {
             try {
                 const resp = await fetch('/api/config');
                 if (!resp.ok) throw new Error('Failed to load credentials/key.json');
                 loadedConfig = await resp.json();
-                document.getElementById('activeProjectId').innerText = loadedConfig.project_id;
-                document.getElementById('headerProjectId').innerText = loadedConfig.project_id;
+
+                const activeProj = document.getElementById('activeProjectId');
+                const headerProj = document.getElementById('headerProjectId');
+
+                if (activeProj) activeProj.innerText = loadedConfig.project_id;
+                if (headerProj) headerProj.innerText = loadedConfig.project_id;
+                
                 showNotification('Project configuration loaded');
 
                 // Load initial resources
@@ -1366,7 +1371,13 @@
                 }
                 showNotification(err.message, true);
             }
-        });
+            }
+
+            if (document.readyState === 'loading') {
+                window.addEventListener('DOMContentLoaded', initApp);
+            } else {
+                initApp();
+            }
 
         // --- Origin Management ---
         let deployingOrigins = new Set();

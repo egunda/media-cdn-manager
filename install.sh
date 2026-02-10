@@ -52,6 +52,20 @@ python3 -m venv venv
 # Create credentials directory if not exists
 mkdir -p credentials
 
+# Optional: Configure custom bucket name
+echo -e "${BLUE}==================================================${NC}"
+echo -e "${BLUE}          Optional: Storage Configuration         ${NC}"
+echo -e "${BLUE}==================================================${NC}"
+read -p "Enter custom GCS bucket name for staging (leave blank for default): " CUSTOM_BUCKET
+if [ -n "$CUSTOM_BUCKET" ]; then
+    echo "{\"bucket_name\": \"$CUSTOM_BUCKET\"}" > credentials/settings.json
+    echo -e "${GREEN}Custom bucket configured: $CUSTOM_BUCKET${NC}"
+else
+    echo "{}" > credentials/settings.json
+    echo -e "${BLUE}Using default bucket naming pattern.${NC}"
+fi
+echo -e ""
+
 # Setup Systemd Service
 echo -e "${GREEN}[5/5] Configuring systemd service...${NC}"
 cat <<EOF > /etc/systemd/system/media-cdn-manager.service

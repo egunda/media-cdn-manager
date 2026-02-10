@@ -73,7 +73,19 @@ Place your service account JSON key in the credentials folder:
 /opt/media-cdn-manager/credentials/key.json
 ```
 
-### 2. Accessing the Dashboard
+### 2. Custom Staging Bucket (Optional)
+By default, the manager creates a bucket named `<project-number>-mediacdn-do-not-delete` to store configuration history. You can override this during the `install.sh` process or by manually creating:
+```bash
+/opt/media-cdn-manager/credentials/settings.json
+```
+Example `settings.json`:
+```json
+{
+  "bucket_name": "my-custom-staging-bucket"
+}
+```
+
+### 3. Accessing the Dashboard
 The server runs on port `6001` by default. Access it via:
 `http://your-server-ip:6001`
 
