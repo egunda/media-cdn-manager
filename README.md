@@ -115,4 +115,4 @@ Contributions are what make the open source community such an amazing place to l
 5. Open a Pull Request
 
 ---
-*Developed with ❤️ for the Media Engineering Community.*
+*Developed with ❤️ for the Media CDN Customers.*
