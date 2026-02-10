@@ -27,7 +27,7 @@ apt-get update && apt-get upgrade -y
 
 # Install dependencies
 echo -e "${GREEN}[2/5] Installing dependencies (Python, OpenSSL, Git)...${NC}"
-apt-get install -y python3 python3-pip python3-venv openssl git curl
+apt-get install -y python3 python3-pip python3-venv openssl git curl lsof
 
 # Setup Directory
 INSTALL_DIR="/opt/media-cdn-manager"

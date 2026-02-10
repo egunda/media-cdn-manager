@@ -4,7 +4,9 @@ cd "$(dirname "$0")"
 
 # Terminate existing backend process if running
 echo "Cleaning up existing processes on port 6001..."
-lsof -ti:6001 | xargs kill -9 2>/dev/null
+if command -v lsof >/dev/null 2>&1; then
+    lsof -ti:6001 | xargs kill -9 2>/dev/null
+fi
 
 # Load environment variables if .env exists
 if [ -f .env ]; then

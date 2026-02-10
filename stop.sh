@@ -1,5 +1,9 @@
 #!/bin/bash
-# Find the PID of the process running on port 6001
+if ! command -v lsof >/dev/null 2>&1; then
+    echo "Error: 'lsof' is not installed. Cannot detect process on port 6001."
+    exit 1
+fi
+
 PID=$(lsof -t -i:6001)
 
 if [ -z "$PID" ]; then
