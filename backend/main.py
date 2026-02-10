@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 import secrets
 import base64
 import threading
@@ -218,6 +219,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 self.send_error(404)
         except Exception as e:
+            traceback.print_exc()
             print(f"Delete Error: {str(e)}")
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
@@ -266,9 +268,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(resp).encode())
             except Exception as e:
+                traceback.print_exc()
                 self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif path == '/api/services':
             try:
                 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -287,9 +291,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(resp).encode())
             except Exception as e:
+                traceback.print_exc()
                 self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif path.startswith('/api/service/'):
             try:
                 service_id = path.split('/')[-1]
@@ -309,6 +315,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(resp).encode())
             except Exception as e:
+                traceback.print_exc()
                 status = 500
                 if "404" in str(e):
                     status = 404
@@ -335,9 +342,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(resp).encode())
             except Exception as e:
+                traceback.print_exc()
                 self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif path == '/api/buckets':
             try:
                 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -356,9 +365,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"buckets": buckets}).encode())
             except Exception as e:
+                traceback.print_exc()
                 self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(e).encode())
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif path == '/api/secrets':
             try:
                 backend_dir = os.path.dirname(os.path.abspath(__file__))

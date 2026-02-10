@@ -1,4 +1,5 @@
 import time
+import socket
 import json
 import base64
 import urllib.request
@@ -77,14 +78,18 @@ def make_gcp_request(url, method="GET", data=None, token=None):
     req = urllib.request.Request(url, data=encoded_data, headers=headers, method=method)
     
     try:
-        with urllib.request.urlopen(req, timeout=10) as f:
-            return json.loads(f.read().decode())
+        with urllib.request.urlopen(req, timeout=30) as f:
+            content = f.read().decode()
+            if not content:
+                return {}
+            return json.loads(content)
     except urllib.error.HTTPError as e:
         error_msg = e.read().decode()
-        # Handle "already exists" specifically
-        if e.code == 409: # Conflict
-             raise Exception(f"GCP API Error: Resource already exists (409)")
+        if e.code == 409:
+             raise Exception("GCP API Error: Resource already exists (409)")
         raise Exception(f"GCP API Error: {e.code} - {error_msg}")
+    except (urllib.error.URLError, socket.timeout) as e:
+        raise Exception(f"Network Error (Timeout/Connection): {str(e)}")
 
 def get_project_number(project_id, token):
     if project_id in _PROJECT_NUMBER_CACHE:
