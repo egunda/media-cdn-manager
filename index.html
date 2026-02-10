@@ -1030,28 +1030,19 @@
         });
 
         // Tab Management
-        const mediaCdnTab = document.getElementById('mediaCdnTab');
-        const wafTab = document.getElementById('wafTab');
-        const mediaCdnSection = document.getElementById('mediaCdnSection');
-        const wafSection = document.getElementById('wafSection');
+            const mediaCdnTab = document.getElementById('mediaCdnTab');
+            const mediaCdnSection = document.getElementById('mediaCdnSection');
 
         function switchTab(tab) {
-            if (tab === 'waf') {
-                mediaCdnSection.classList.add('hidden');
-                wafSection.classList.remove('hidden');
-                mediaCdnTab.classList.remove('active');
-                wafTab.classList.add('active');
-            } else {
-                wafSection.classList.add('hidden');
-                mediaCdnSection.classList.remove('hidden');
-                wafTab.classList.remove('active');
-                mediaCdnTab.classList.add('active');
-            }
+            // WAF Tab removed as per branding update
+            mediaCdnSection.classList.remove('hidden');
+            mediaCdnTab.classList.add('active');
             lucide.createIcons();
         }
 
-        mediaCdnTab.addEventListener('click', () => switchTab('media'));
-        wafTab.addEventListener('click', () => switchTab('waf'));
+            if (mediaCdnTab) {
+            mediaCdnTab.addEventListener('click', () => switchTab('media'));
+        }
 
         function setType(type) {
             currentType = type;
@@ -1572,7 +1563,7 @@
                     }
                 }
 
-                showNotification(`Settings cloned from ${serviceName}`);
+                showNotification(`Settings cloned from ${id}`);
             } catch (err) {
                 console.error('Clone error:', err);
                 showNotification('Error cloning service', true);
