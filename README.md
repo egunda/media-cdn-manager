@@ -8,7 +8,7 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 
 VIV Media CDN Manager is a lightweight, high-performance management portal designed to simplify the complexities of Google Cloud Media CDN (Edge Cache). Whether you are streaming VOD content or real-time Live events, this tool provides a centralized dashboard for rapid deployment, security orchestration, and resource monitoring.
 
@@ -16,20 +16,20 @@ Built with **Airlock-Compatibility** in mind, the backend relies exclusively on 
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 ### 🛠️ Rapid Deployment
 - **One-Click Setup**: Standardized templates for VOD and Live HLS/DASH streaming.
 - **Granular TTL Management**: Automatic enforcement of best-practice caching rules (e.g., 31536000s for VOD chunks, 2s for Live playlists).
 - **SSL Management**: Seamless integration with Google Certificate Manager for global edge certificates.
 
-### 🔒 Advanced Security (VIV-Shield)
+### Advanced Security (VIV-Shield)
 - **Dual Token Authentication**: Full implementation of HLS cookieless token protection (HMAC-SHA256).
 - **Secret Manager Integration**: Automated creation and rotation of HMAC secrets.
 - **WAF Console (Gemini Enabled)**: Integrated Cloud Armor policy management with AI-assisted rule analysis.
 - **IAM Auto-Provisioning**: Intelligent handling of service identities for bucket access.
 
-### 🎨 Premium UI/UX
+### Premium UI/UX
 - **VIV High-Contrast Theme**: A professional interface mimicking premium cloud consoles.
 - **Deep Dark Mode**: Native support for dark mode with persistence and adaptive components.
 - **Floating Deployment Monitor**: Real-time progress tracking with a minimized tray view for background operations.
@@ -37,7 +37,7 @@ Built with **Airlock-Compatibility** in mind, the backend relies exclusively on 
 
 ---
 
-## 🚀 Instant Installation
+## Instant Installation
 
 To get started on a fresh **Debian/Ubuntu** server, run the following command:
 
@@ -58,7 +58,7 @@ curl -sSL https://raw.githubusercontent.com/egunda/media-cdn-manager/main/instal
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### 1. Service Account Key
 The manager requires a Google Cloud Service Account with the following permissions:
@@ -90,7 +90,7 @@ The server runs on port `6001` by default. Access it via:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 - **Frontend**: Vanilla HTML5, Tailwind CSS (via CDN), Lucide Icons.
 - **Backend**: Native Python 3 (http.server/urllib), OpenSSL (for JWT signing).
@@ -99,12 +99,12 @@ The server runs on port `6001` by default. Access it via:
 
 ---
 
-## 📄 License
+## License
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Fork the Project
