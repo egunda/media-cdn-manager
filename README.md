@@ -1,4 +1,4 @@
-# 🚀 Media CDN Manager
+# Media CDN Manager
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -18,7 +18,7 @@ Built with **Airlock-Compatibility** in mind, the backend relies exclusively on 
 
 ## Key Features
 
-### 🛠️ Rapid Deployment
+### Rapid Deployment
 - **One-Click Setup**: Standardized templates for VOD and Live HLS/DASH streaming.
 - **Granular TTL Management**: Automatic enforcement of best-practice caching rules (e.g., 31536000s for VOD chunks, 2s for Live playlists).
 - **SSL Management**: Seamless integration with Google Certificate Manager for global edge certificates.
